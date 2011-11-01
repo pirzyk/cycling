@@ -1,0 +1,48 @@
+report <TABLE> [SELECTOR] [GROUPBY]
+	Displays full data from table, limited by the [SELECTOR], sub-totaled by the [GROUPBY] and has grand totals.
+
+(report|graph) <TABLE> <FIELD> [SELECTOR] [GROUPBY]
+	Displays the field from the table, limited by the [SELECTOR], with sub-totals by the [GROUPBY]
+	i.e. graph weight weight this year
+
+(report|graph) <TABLE> (sum|avg) <FIELD> [SELECTOR] [GROUPBY]
+	Displays the sum/avg(field) from the table, limited by the [SELECTOR], with sub-totals by the [GROUPBY]
+
+(report|graph) <FIELD> [SELECTOR] [GROUPBY]
+	Displays the sum(field) from multiple tables, limited by the [SELECTOR], with sub-totals by the [GROUPBY]
+
+
+
+report ride this year
+	SELECT * FROM ride WHERE date LIKE '2010-%';
+
+report ride this year group by month
+	SELECT * FROM ride WHERE date LIKE '2010-%';
+	# Totals based on each month....
+
+report time this year
+	SELECT convert_seconds(sum(convert_time(trainer.time))+sum(convert_time(ride.time))) FROM trainer,ride WHERE date LIKE '2010-%';
+
+report trainer time this year
+	SELECT convert_seconds(sum(convert_time(time))) FROM trainer WHERE date LIKE '2010-%';
+
+report trainer time this year group by month
+	SELECT convert_seconds(sum(convert_time(time))) FROM trainer WHERE date LIKE '2010-%' GROUP BY MONTH(date);
+
+report trainer average_time this year group by month
+	SELECT convert_seconds(sum(convert_time(time))/count(time)) FROM trainer WHERE date LIKE '2010-%' GROUP BY MONTH(date);
+
+report ride distance this year
+	SELECT sum(distance) FROM ride WHERE date LIKE '2010-%';
+
+report ride distance this year group by month
+	SELECT sum(distance) FROM ride WHERE date LIKE '2010-%' GROUP BY MONTH(date);
+
+report ride average_distance this year group by month
+	SELECT sum(distance)/count(distance) FROM ride WHERE date LIKE '2010-%' GROUP BY MONTH(date);
+
+report polar calories this year group by month
+	SELECT sum(calories) FROM polar WHERE date LIKE '2010-%' GROUP BY MONTH(date);
+
+report polar cph this year group by month
+	SELECT sum(calories)/(sum(convert_time(time))/3600) FROM polar WHERE date LIKE '2010-%' GROUP BY MONTH(date);
