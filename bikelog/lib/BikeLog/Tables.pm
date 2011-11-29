@@ -806,7 +806,13 @@ sub graph {
 sub create_graph {
 	my ($table, $title, $x_label, $y_label, $y2_label, $file, $totals, @data) = @_;
 	my ($font) = '/System/Library/Fonts/Courier.dfont';
-	my ($x, $y) = (800, 600);
+	my ($y) = 600;
+
+	my ($cnt) = scalar @{$data[0]};
+
+	my ($x) = ($table eq 'weight'
+		? 2 * $cnt / ($cnt > 500 ? 2: 1)
+		: 66 * $cnt / ($cnt > 20 ? 2: 1));
 
 	my $img = ($table eq 'weight'
 		? new GD::Graph::lines($x,$y)
@@ -836,13 +842,13 @@ sub create_graph {
 	$img->set(
 		x_label => $x_label,
 		x_labels_vertical => 1,
-		x_label_skip => scalar @{$data[0]} / 32,
+		x_label_skip => ($table eq 'weight'? $cnt / 32: 0),
 		x_label_position => 1/2,
 		title => $title,
 		legendclr => 'black',
 		transparent => 0,
 	);
-	if ( scalar @{$data[0]} < 16 ) {
+	if ( $cnt < 16 ) {
 		$img->set(
 			show_values => 1,
 			text_space => 50,
