@@ -111,7 +111,7 @@ sub report {
 			.  "\n";
 
 	# The full report
-	} elsif ( $arg eq 'this' || $arg eq 'year' || $arg eq 'month' || ! defined $arg ) {
+	} elsif ( $arg eq 'this' || $arg eq 'year' || $arg eq 'month' || $arg eq 'start' || $arg eq 'end' || ! defined $arg ) {
 
 		unshift @args, $arg if ( defined $arg );
 

@@ -466,7 +466,7 @@ sub print_results {
 
 sub process_date {
 	my ($table, $sql, @args) = @_;
-	my ($arg, $year, $mon, $groupby);
+	my ($arg, $year, $mon, $groupby, $start, $end);
 
 	$arg = shift @args;
 	if ( $arg eq 'this' || $arg eq 'last' ) {
@@ -487,6 +487,30 @@ sub process_date {
 			$arg = shift @args;
 		} else {
 			die "Need either the word 'month' or 'year' to go with 'report $table (mileage|distance) $arg'\n";
+		}
+	}
+
+	if ( $arg eq 'start' ) {
+		if ( scalar @args ) {
+			$arg = shift @args;
+			if ( $arg =~ /^[1-2]\d{3}-\d{2}-\d{2}$/ ) {
+				$start = $arg;
+				$arg = shift @args;
+			} else {
+				die "Can't understand start $arg, should be YYYY-MM-DD\n";
+			}
+		}
+	}
+
+	if ( $arg eq 'end' ) {
+		if ( scalar @args ) {
+			$arg = shift @args;
+			if ( $arg =~ /^[1-2]\d{3}-\d{2}-\d{2}$/ ) {
+				$end = $arg;
+				$arg = shift @args;
+			} else {
+				die "Can't understand end $arg, should be YYYY-MM-DD\n";
+			}
 		}
 	}
 
@@ -536,15 +560,27 @@ sub process_date {
 	die "Can't understand " . join (" ", @args) . " for $table\n"
 		if ( scalar @args );
 
+	my ($where);
+
+	$where .= "$table.date >= '$start'"
+		if ( length $start );
+
+	$where .= (length $where ? ' AND ' : '' ) . "$table.date <= '$end'"
+		if ( length $end );
+
 	if ( length $year || length $mon ) {
 		if ( length $mon ) {
 			$year = strftime("%Y", localtime())
 				if ( ! length $year );
-			$sql .= " WHERE $table.date LIKE '$year-$mon-%%'";
+			$where .= (length $where ? ' AND ' : '' ) . "$table.date >= '$year-$mon-01' AND $table.date <= '$year-$mon-31'";
 		} else {
-			$sql .= " WHERE $table.date LIKE '$year-%%'";
+			$where .= (length $where ? ' AND ' : '' ) . "$table.date >= '$year-01-01' AND $table.date <= '$year-12-31'";
 		}
 	}
+
+	$sql .= ' WHERE ' . $where
+		if ( defined $where && length $where );
+
 	#$sql .= " GROUP BY $groupby" if ( length $groupby );
 
 	return ($sql, $groupby);
