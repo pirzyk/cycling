@@ -98,7 +98,9 @@ proc CreateBody {} {
 		.body.report.t add cascade -menu .body.report.t.$report -label $report
 		.body.report.t.$report add command -label "All" -command "RunReport $report \"\" \"\""
 		.body.report.t.$report add command -label "this month" -command "RunReport $report this month"
+		.body.report.t.$report add command -label "last month" -command "RunReport $report last month"
 		.body.report.t.$report add command -label "this year" -command "RunReport $report this year"
+		.body.report.t.$report add command -label "last year" -command "RunReport $report last year"
 	}
 
 	button .body.graph -text "Graph" -bg $BGColor -fg $FGColor -command "CreateGraph" -width 10
@@ -443,7 +445,7 @@ proc RunReport {table this what} {
 	global BGColor FGColor bikelogCmd
 	global debug
 
-	if { $debug } { puts "in RunReport {}" }
+	if { $debug } { puts "in RunReport { $table $this $what }" }
 
 	if { $this == 1 } { set this "this" }
 

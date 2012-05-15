@@ -2,7 +2,7 @@
 
 FILE=$HOME/Public/mileage.js
 FILE2=$HOME/Public/time.js
-SERVER=zoot.intenex.net
+SERVER=www.pirzyk.org
 DIR=public_html/static/mileage/.
 YEAR=`date "+%Y"`
 FILES="$FILE $FILE2"
