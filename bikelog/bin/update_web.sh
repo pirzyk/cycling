@@ -3,7 +3,7 @@
 FILE=$HOME/Public/mileage.js
 FILE2=$HOME/Public/time.js
 SERVER=www.pirzyk.org
-DIR=public_html/static/mileage/.
+DIR="/usr/local/www/html-${SERVER}/static/mileage/."
 YEAR=`date "+%Y"`
 FILES="$FILE $FILE2"
 
