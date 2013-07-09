@@ -44,14 +44,12 @@ my $year = strftime("%Y", localtime());
 my $file = $idir . '/bikelog.' . ($0 =~ /_mileage_/ ? 'ride' : 'trainer') . '.' . $year . '.' . $iext;
 my $ofile = $idir . '/bikelog.' . ($0 =~ /_mileage_/ ? 'ride' : 'trainer') . '.' . ($year - 1) . '.' . $iext;
 
-print "document.write(\"<center>\");\n";
-
 # If we have 0 for time/mileage, do not create a hyperlink.
 print "document.write(\"<a href=\\\"$file\\\">\");\n"
 	if ( $ARGV[0] !~ /^0+([.:]0+(:0+)?)?$/ );
 
 my $dot=0;
-if ($0 =~ /_mileage_/ ) {
+#if ($0 =~ /_mileage_/ ) {
 	foreach my $ch ( split //, $ARGV[0] ) {
 		if ( $ch eq '.' ) {
 			$dot = 1;
@@ -59,15 +57,13 @@ if ($0 =~ /_mileage_/ ) {
 			print_digit($ch, $dot);
 		}
 	}
-} else {
+#} else {
 	print "document.write(\"$ARGV[0]\");\n";
-}
+#}
 print "document.write(\"</a>\");\n"
 	if ( $ARGV[0] !~ /^0+([.:]0+(:0+)?)?$/ );
 
 # Write out link to last year's data
 print "document.write(\"<br aligin=\\\"right\\\"><font size=-2><a href=\\\"$ofile\\\">Last Year</a></font>\");\n";
-
-print "document.write(\"</center>\");\n";
 
 exit 0;
