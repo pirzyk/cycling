@@ -50,13 +50,13 @@ print "document.write(\"<a href=\\\"$file\\\">\");\n"
 
 my $dot=0;
 #if ($0 =~ /_mileage_/ ) {
-	foreach my $ch ( split //, $ARGV[0] ) {
-		if ( $ch eq '.' ) {
-			$dot = 1;
-		} else {
-			print_digit($ch, $dot);
-		}
-	}
+#	foreach my $ch ( split //, $ARGV[0] ) {
+#		if ( $ch eq '.' ) {
+#			$dot = 1;
+#		} else {
+#			print_digit($ch, $dot);
+#		}
+#	}
 #} else {
 	print "document.write(\"$ARGV[0]\");\n";
 #}
