@@ -47,7 +47,7 @@ sub create {
 	&BikeLog::Tables::create( 'zone', @zone_schema );
 
 	# setup the zone table entries
-	for (my $i = 0; $i <= 7; $i++ ) {
+	for (my $i = 0; $i <= 6; $i++ ) {
 		&BikeLog::Tables::_sql ("INSERT INTO zone VALUES ($i, -1, -1, -1)");
 	}
 
@@ -103,17 +103,15 @@ sub set_zone {
 	# The MAX value will be stored at
 	my (@values);
 
-	# Percentage ranges calculated based on this page:
-	# http://www.machinehead-software.co.uk/bike/heart_rate/heart_rate_zone_calculator_abcc_bcf.html
+	# Percentage ranges based on Garmin software
 	# Calculate the zone min values based on the percentage of MAX.
 	$values[0] = 0;
-	$values[1] = int(.6 * $value);	# Recovery
-	$values[2] = int(.65 * $value);
-	$values[3] = int(.75 * $value);
-	$values[4] = int(.82 * $value);
-	$values[5] = int(.89 * $value);
-	$values[6] = int(.94 * $value);
-	$values[7] = $value;			# Max
+	$values[1] = int(.5 * $value);	# Recovery
+	$values[2] = int(.6 * $value);
+	$values[3] = int(.7 * $value);
+	$values[4] = int(.8 * $value);
+	$values[5] = int(.9 * $value);
+	$values[6] = $value;			# Max
 
 	for (my $i = 0; $i < scalar @values; $i++ ) {
 		&BikeLog::Tables::_sql(
