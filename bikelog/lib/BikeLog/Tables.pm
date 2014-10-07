@@ -612,7 +612,7 @@ sub update_data {
 		# Insert the HR Zone column
 		my $zone;
 		if ( exists $opts->{'HR'} ) {
-			$zone = (defined $_->[$opts->{'HR'}]?
+			$zone = ($_->[$opts->{'HR'}] > 0 ?
 				&BikeLog::Tables::_sql('SELECT MAX(zone.zone) FROM zone WHERE ' . $_->[$opts->{'HR'}] . ' >= zone.hr', 'SCALAR')
 				: undef);
 			splice (@{$_}, $opts->{'HR'} + 1, 0, ($zone));
