@@ -4,7 +4,7 @@ use strict;
 #use warnings;
 use Data::Dumper;
 use POSIX;
-use Date::Calc qw(Today Add_Delta_Days);
+use Date::Calc qw(Today Add_Delta_Days Week_of_Year);
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
@@ -548,6 +548,8 @@ sub process_date {
 			$groupby = 'YEAR(date)';
 		} elsif ( $arg eq 'month' ) {
 			$groupby = 'MONTH(date)';
+		} elsif ( $arg eq 'week' ) {
+			$groupby = 'strftime("%W",date)';
 		} else {
 			die "Can't understand 'groupby $arg', should be 'groupby month' or 'groupby year'\n";
 		}
@@ -726,6 +728,10 @@ sub get_data {
 			if ( $groupby eq 'MONTH(date)' ) {
 				$ndx =~ s/^\d{4}-//;
 				$ndx =~ s/-\d{2}$//;
+			}
+			# groupby Week
+			if ( $groupby eq 'strftime("%W",date)' ) {
+				($ndx) = Week_of_Year(split('-',$row->[1]));
 			}
 			$d->{$ndx}->{'sum'} = $d->{$ndx}->{'count'} = 0
 				if ( ! exists $d->{$ndx} );
