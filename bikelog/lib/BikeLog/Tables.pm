@@ -732,6 +732,7 @@ sub get_data {
 			# groupby Week
 			if ( $groupby eq 'strftime("%W",date)' ) {
 				($ndx) = Week_of_Year(split('-',$row->[1]));
+				$ndx = '0' . $ndx if ($ndx < 10);
 			}
 			$d->{$ndx}->{'sum'} = $d->{$ndx}->{'count'} = 0
 				if ( ! exists $d->{$ndx} );
