@@ -58,6 +58,11 @@ sub open_db {
 			my ($date) = @_;
 			return  $1 if ( $date =~ /^\d{4}-\d{2}-(\d{2})$/ );
 		}, 'create_function');
+		$dbh->func('week', 1, sub {
+			my ($date) = @_;
+			my ($w) = Week_of_Year(split('-',$date)) if ( $date =~ /^(\d{4})-(\d{2})-(\d{2})$/ );
+			return $w;
+		}, 'create_function');
 		$dbh->func('convert_time', 1, \&convert_time, 'create_function');
 		$dbh->func('convert_seconds', 1, \&convert_seconds, 'create_function');
 
@@ -549,9 +554,11 @@ sub process_date {
 		} elsif ( $arg eq 'month' ) {
 			$groupby = 'MONTH(date)';
 		} elsif ( $arg eq 'week' ) {
-			$groupby = 'strftime("%W",date)';
+			$groupby = 'WEEK(date)';
+		} elsif ( $arg eq 'bike' ) {
+			$groupby = 'fk_bike_id';
 		} else {
-			die "Can't understand 'groupby $arg', should be 'groupby month' or 'groupby year'\n";
+			die "Can't understand 'groupby $arg', should be 'groupby year, month, week or bike'\n";
 		}
 		$arg = shift @args;
 	}
@@ -580,8 +587,13 @@ sub process_date {
 		}
 	}
 
-	$sql .= ' WHERE ' . $where
-		if ( defined $where && length $where );
+	if ( defined $where && length $where ) {
+		if ( $sql =~ /WHERE/ ) {
+			$sql .= ' AND ' . $where
+		} else {
+			$sql .= ' WHERE ' . $where
+		}
+	}
 
 	#$sql .= " GROUP BY $groupby" if ( length $groupby );
 
@@ -714,9 +726,13 @@ sub update_data {
 
 sub get_data {
 	my ($table, $what, @args) = @_;
-	my $sql = "SELECT $what,date FROM $table";
-	my ($groupby);
+	my ($sql, $groupby);
 
+	if ( $table eq 'polar' ) {
+		$sql = "SELECT $what,date FROM $table";
+	} else {
+		$sql = "SELECT $what,date,bike.name FROM $table, bike WHERE $table.fk_bike_id = bike.id";
+	}
 	($sql, $groupby) = &BikeLog::Tables::process_date($table, $sql, @args) if ( scalar @args );
 	my $data = &BikeLog::Tables::_sql($sql, 1);
 	my ($d);
@@ -733,6 +749,10 @@ sub get_data {
 			if ( $groupby eq 'strftime("%W",date)' ) {
 				($ndx) = Week_of_Year(split('-',$row->[1]));
 				$ndx = '0' . $ndx if ($ndx < 10);
+			}
+			# groupby bike
+			if ( $groupby eq 'fk_bike_id' ) {
+				$ndx = $row->[2];
 			}
 			$d->{$ndx}->{'sum'} = $d->{$ndx}->{'count'} = 0
 				if ( ! exists $d->{$ndx} );
