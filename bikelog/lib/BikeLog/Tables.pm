@@ -553,6 +553,8 @@ sub process_date {
 			$groupby = 'YEAR(date)';
 		} elsif ( $arg eq 'month' ) {
 			$groupby = 'MONTH(date)';
+		} elsif ( $arg eq 'week' && ! length $year ) {
+			$groupby = 'YEAR(date) WEEK(date)'
 		} elsif ( $arg eq 'week' ) {
 			$groupby = 'WEEK(date)';
 		} elsif ( $arg eq 'bike' ) {
@@ -746,7 +748,13 @@ sub get_data {
 				$ndx =~ s/-\d{2}$//;
 			}
 			# groupby Week
-			if ( $groupby eq 'strftime("%W",date)' ) {
+			if ( $groupby eq 'YEAR(date) WEEK(date)' ) {
+			        $ndx =~ s/-\d{2}-\d{2}$//;
+				my $w = Week_of_Year(split('-',$row->[1]));
+				$w = '0' . $w if ($w < 10);
+                                $ndx .= " $w";
+			}
+			if ( $groupby eq 'WEEK(date)' ) {
 				($ndx) = Week_of_Year(split('-',$row->[1]));
 				$ndx = '0' . $ndx if ($ndx < 10);
 			}
