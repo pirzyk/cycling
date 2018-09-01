@@ -2,8 +2,9 @@
 
 FILE=$HOME/Public/mileage.js
 FILE2=$HOME/Public/time.js
-SERVER=www.pirzyk.org
-DIR="/usr/local/www/html-${SERVER}/static/mileage/."
+REMOTE_DIRS="amigo.home.pirzyk.org:/usr/local/www/wordpress/static/mileage
+    amigo.home.pirzyk.org:/usr/local/www/wordpress_static/static/mileage
+    pirzyk.org:/usr/local/www/html-www.pirzyk.org/static/mileage"
 YEAR=`date "+%Y"`
 FILES="$FILE $FILE2"
 
@@ -34,6 +35,8 @@ else
 	$d/format_mileage_js.pl $1 > $FILE
 	$d/format_time_js.pl $2 > $FILE2
 fi
-scp $FILES $SERVER:$DIR
+for location in ${REMOTE_DIRS}; do
+    scp $FILES $location
+done
 
 exit $?

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use POSIX;
 
-my $idir = '/static/mileage';
+my $idir = '/wordpress/static/mileage';
 my $iext = 'png';
 
 sub usage {
