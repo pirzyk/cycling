@@ -3,7 +3,6 @@
 FILE=$HOME/Public/mileage.js
 FILE2=$HOME/Public/time.js
 REMOTE_DIRS="amigo.home.pirzyk.org:/usr/local/www/wordpress/static/mileage
-    amigo.home.pirzyk.org:/usr/local/www/wordpress_static/static/mileage
     pirzyk.org:/usr/local/www/html-www.pirzyk.org/static/mileage"
 YEAR=`date "+%Y"`
 FILES="$FILE $FILE2"
