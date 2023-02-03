@@ -120,6 +120,26 @@ sub set_zone {
 	}
 }
 
+sub report {
+	my (@args) = @_;
+
+	my $arg = shift @args;
+	if ( $arg eq 'max' ) {
+		$arg = shift @args;
+		if ( $arg eq 'speed' ) {
+		}
+	} else {
+		my ($data) = &BikeLog::Tables::get_data('bike', 'name,serial', @args);
+		if ( ref $data eq 'HASH' ) {
+			my (@s) = ( ['Name', 'STRING'], ['Serial', 'STRING']);
+			my (@l) = ( 20, 15 );
+			&BikeLog::Tables::print_header(\@s, \@l);
+		} else {
+			print $data . "\n";
+		}
+	}
+}
+
 1;
 
 __END__

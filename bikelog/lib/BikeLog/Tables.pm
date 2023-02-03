@@ -732,6 +732,8 @@ sub get_data {
 
 	if ( $table eq 'polar' ) {
 		$sql = "SELECT $what,date FROM $table";
+	} elsif ( $table eq 'bike' ) {
+		$sql = "SELECT $what FROM $table";
 	} else {
 		$sql = "SELECT $what,date,bike.name FROM $table, bike WHERE $table.fk_bike_id = bike.id";
 	}
