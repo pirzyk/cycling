@@ -1,7 +1,7 @@
 package BikeLog::Tables;
 
 use strict;
-#use warnings;
+use warnings;
 use Data::Dumper;
 use POSIX;
 use Date::Calc qw(Today Add_Delta_Days Week_of_Year);
@@ -93,6 +93,7 @@ sub close_db {
 
 sub _sql {
 	my ($sql, $type) = @_;
+        $type //= '';
 	debug ("In BikeLog::Tables::_sql($sql, $type)", 3);
 
 	my ($sth) = $dbh->prepare($sql)
@@ -237,13 +238,14 @@ sub create_fk_triggers {
 
 sub insert {
 	my ($table, @what) = @_;
-	debug ("In BikeLog::Tables::insert($table, [" . join(',', @what) . "])", 2);
+        my $str;
+        {
+            no warnings;
+            $str = qq("\Q) .  join (qq(\E", "\Q), @what) .  qq(\E");
+        }
+	debug ("In BikeLog::Tables::insert($table, [$str])", 2);
 
-	&_sql (
-		"INSERT INTO $table VALUES (\"\Q" .
-		join ("\E\", \"\Q", @what) .
-		"\E\")"
-	);
+	&_sql ("INSERT INTO $table VALUES ($str)");
 }
 
 sub has_date {
@@ -282,14 +284,13 @@ sub _get_schema {
 		my $name = shift @a;
 		my $type = shift @a;
 		push @schema, [ $name, $type, join (' ', @a) ];
-	} 
+	}
 
 	return @schema;
 }
 
 sub _assemble_sql {
 	my ($f, $t, $j, $w) = @_;
-	my $sql;
 
 	my $sql = 'SELECT ' . join(',', @{$f}) . ' FROM ' . join (',', @{$t});
 	if ( defined $j ) {
@@ -309,17 +310,17 @@ sub convert_unit {
 		? &_sql("SELECT name from unit where id = $from_id", 'SCALAR')
 		: $from_id);
 	
-	my ($to) = ( $to_id =~ /^\d+$/ 
+	my ($to) = ( $to_id =~ /^\d+$/
 		? &_sql("SELECT name from unit where id = $to_id", 'SCALAR')
 		: $to_id);
 
-	if ( $from eq 'Mi' && $to eq 'Km' ) {
+	if ( $from eq 'Mi' and $to eq 'Km' ) {
 		return $value * 1.609344;
-	} elsif ( $from eq 'Km' && $to eq 'Mi' ) {
+	} elsif ( $from eq 'Km' and $to eq 'Mi' ) {
 		return $value * 0.621371192;
-	} elsif ( $from eq 'LBs' && $to eq 'Kg' ) {
+	} elsif ( $from eq 'LBs' and $to eq 'Kg' ) {
 		return $value * 0.45359237;
-	} elsif ( $from eq 'Kg' && $to eq 'LBs' ) {
+	} elsif ( $from eq 'Kg' and $to eq 'LBs' ) {
 		return $value * 2.20462262;
 	} else {
 		die "Don't know how to convert from $from ($from_id) to $to ($to_id)\n";
@@ -329,6 +330,7 @@ sub convert_unit {
 # Returns number of seconds from the HH::MM::ss format
 sub convert_time {
 	my ($time) = @_;
+        return if !defined $time;
 	my ($s,$m,$h) = reverse(split(/:/, $time));
 
 	return ($h * 3600 + $m * 60 + $s);
@@ -388,18 +390,20 @@ sub print {
 
 sub print_line {
 	my ($val, $length, $cnt, $type) = @_;
+        $val //= '';
+        debug ("In BikeLog::Table::print_line($val, $length, $cnt, $type)", 2);
 
 	print ' ' if ( $cnt );
 	if ( $type eq 'HEADER' || !length($val) ) {
-		printf "%-*s", $length, $val;
-	} elsif ( $type =~ m/TEXT|CHAR/i && length ($val) ) {
-		printf "%-*s", $length, '"' . $val . '"';
+		printf "%-*.*s", $length, $length, $val;
+	} elsif ( $type =~ m/TEXT|CHAR/i and length ($val) ) {
+		printf "%-*.*s", $length, $length, qq($val);
 	} elsif ( $type =~ m/INTEGER/i ) {
 		printf "%*d", $length, ($val + 0);
 	} elsif ( $type =~ m/REAL/i ) {
 		printf '%' . $length . '.2f', ($val + 0.00);
 	} else {
-		printf "%*s", $length, $val;
+		printf "%*.*s", $length, $length, $val;
 	}
 }
 
@@ -407,7 +411,7 @@ sub print_hr {
 	my ($s, $l) = @_;
 
 	for (my $i = 0; $i < scalar @{$s}; $i++ ) {
-		&print_line (('-' x $l->[$i]), $l->[$i], $i);
+		&print_line (('-' x $l->[$i]), $l->[$i], $i, 'N/A');
 	}
 	print "\n";
 }
@@ -433,18 +437,19 @@ sub print_results {
 	# Construct the field length array
 	my (@length, $field);
 	for (my $row=0; $row < scalar @{$data}; $row++) {
-		for ($field=0; $field < scalar@{$data->[$row]}; $field++) {
+		for ($field=0; $field < scalar @{$data->[$row]}; $field++) {
 			$length[$field] = length($schema->[$field]->[0]) + ($schema->[$field]->[1] =~ m/TEXT|CHAR/i? 2:0)
 				if ( ! $row );
 			my $l;
 			if ( $schema->[$field]->[1] eq 'REAL' ) {
-				$l = length(substr($data->[$row]->[$field], 0, index($data->[$row]->[$field], '.'))) + 3;
+				$l = (defined $data->[$row]->[$field] ? length(substr($data->[$row]->[$field], 0, index($data->[$row]->[$field], '.'))) + 3 : 4);
 			} elsif ( $schema->[$field]->[1] =~ m/TEXT|CHAR/i ) {
-				$l = length($data->[$row]->[$field]) + 2;
+                                # We may have a null value in the database, so length doesn't return 0 but undef;
+                                $l = (defined $data->[$row]->[$field] ? length($data->[$row]->[$field]) : 0) + 2;
 			} elsif ( $schema->[$field]->[1] eq 'TIME' ) {
 				$l = 9;
 			} else {
-				$l = length($data->[$row]->[$field]);
+				$l = defined $data->[$row]->[$field] ? length($data->[$row]->[$field]) : 0;
 			}
 			$length[$field] = ($length[$field] < $l ? $l:  $length[$field]);
 		}
@@ -467,7 +472,7 @@ sub print_results {
 		}
 		print "\n\n";
 	}
-} 
+}
 
 sub process_date {
 	my ($table, $sql, @args) = @_;
@@ -480,8 +485,8 @@ sub process_date {
 			$arg = shift @args;
 			$year = strftime("%Y", localtime()) if ( $arg eq 'year' );
 			$mon = strftime("%m", localtime()) if ( $arg eq 'month' );
-			$year-- if ( $oarg eq 'last' && $arg eq 'year' );
-			if ( $oarg eq 'last' && $arg eq 'month' ) {
+			$year-- if ( $oarg eq 'last' and $arg eq 'year' );
+			if ( $oarg eq 'last' and $arg eq 'month' ) {
 				if ( $mon > 1 )  {
 					$mon--;
 				} else {
@@ -495,7 +500,7 @@ sub process_date {
 		}
 	}
 
-	if ( $arg eq 'start' ) {
+	if ( defined $arg and $arg eq 'start' ) {
 		if ( scalar @args ) {
 			$arg = shift @args;
 			if ( $arg =~ /^[1-2]\d{3}-\d{2}-\d{2}$/ ) {
@@ -507,7 +512,7 @@ sub process_date {
 		}
 	}
 
-	if ( $arg eq 'end' ) {
+	if ( defined $arg and $arg eq 'end' ) {
 		if ( scalar @args ) {
 			$arg = shift @args;
 			if ( $arg =~ /^[1-2]\d{3}-\d{2}-\d{2}$/ ) {
@@ -519,7 +524,7 @@ sub process_date {
 		}
 	}
 
-	if ( $arg eq 'year' ) {
+	if ( defined $arg and $arg eq 'year' ) {
 		if ( ! length $year ) {
 			$arg = shift @args;
 			if ( $arg =~ /^[1-2]\d{3}$/ ) {
@@ -531,10 +536,10 @@ sub process_date {
 		}
 	}
 
-	if ( $arg eq 'month' ) {
+	if ( defined $arg and $arg eq 'month' ) {
 		if ( ! length $mon ) {
 			$arg = shift @args;
-			if ( length ($arg) == 2 && $arg > 0 && $arg < 13 ) {
+			if ( length ($arg) == 2 and $arg > 0 and $arg < 13 ) {
 				$mon = $arg;
 			} else {
 				die "Can't understand month $arg, should be between 01 and 12\n";
@@ -543,17 +548,17 @@ sub process_date {
 		}
 	}
 
-	if ( $arg eq 'groupby' ) {
+	if ( defined $arg and $arg eq 'groupby' ) {
 		$arg = shift @args;
-		if ( $arg eq 'year' && length $year ) {
+		if ( $arg eq 'year' and length $year ) {
 			die "Can't understand 'year $year groupby year'\n";
-		} elsif ( $arg eq 'month' && ! length $year ) {
+		} elsif ( $arg eq 'month' and ! length $year ) {
 			$groupby = 'YEAR(date) MONTH(date)'
 		} elsif ( $arg eq 'year' ) {
 			$groupby = 'YEAR(date)';
 		} elsif ( $arg eq 'month' ) {
 			$groupby = 'MONTH(date)';
-		} elsif ( $arg eq 'week' && ! length $year ) {
+		} elsif ( $arg eq 'week' and ! length $year ) {
 			$groupby = 'YEAR(date) WEEK(date)'
 		} elsif ( $arg eq 'week' ) {
 			$groupby = 'WEEK(date)';
@@ -589,7 +594,7 @@ sub process_date {
 		}
 	}
 
-	if ( defined $where && length $where ) {
+	if ( defined $where and length $where ) {
 		if ( $sql =~ /WHERE/ ) {
 			$sql .= ' AND ' . $where
 		} else {
@@ -610,16 +615,16 @@ sub update_data {
 	return if ( ! scalar @{$data} );
 
 	$totals->[0] = 'Totals ' . scalar @{$data};
-	$totals->[$opts->{'DISTANCE'} + 1 ] = $default_unit 
+	$totals->[$opts->{'DISTANCE'} + 1 ] = $default_unit
 		if ( exists $opts->{'DISTANCE'} );
 	$totals->[$opts->{'SPEED'} + 1 ] = $default_unit . '/hr'
-		if ( exists $opts->{'SPEED'} && exists $opts->{'DISTANCE'} );
+		if ( exists $opts->{'SPEED'} and exists $opts->{'DISTANCE'} );
 
 	# Iterate through the data and update fields.
 	map {
 
 		# Insert the Speed column into our data array
-		if ( exists $opts->{'SPEED'} && exists $opts->{'TIME'} && exists $opts->{'DISTANCE'} ) {
+		if ( exists $opts->{'SPEED'} and exists $opts->{'TIME'} and exists $opts->{'DISTANCE'} ) {
 			$h = &BikeLog::Tables::convert_time($_->[$opts->{'TIME'}]) / 3600;
 			my $speed = $_->[exists $opts->{'DISTANCE'}] / $h;
 			splice (@{$_}, $opts->{'SPEED'}, 0, ($speed, $_->[$opts->{'DISTANCE'}+1] . '/hr'));
@@ -628,17 +633,17 @@ sub update_data {
 		# Insert the HR Zone column
 		my $zone;
 		if ( exists $opts->{'HR'} ) {
-			$zone = ($_->[$opts->{'HR'}] > 0 ?
+			$zone = (defined $_->[$opts->{'HR'}] and $_->[$opts->{'HR'}] =~ /^[0-9]+$/ ?
 				&BikeLog::Tables::_sql('SELECT MAX(zone.zone) FROM zone WHERE ' . $_->[$opts->{'HR'}] . ' >= zone.hr', 'SCALAR')
-				: undef);
+				: 0);
 			splice (@{$_}, $opts->{'HR'} + 1, 0, ($zone));
 		}
 
 		# Kilocalories per hour
-		if ( exists $opts->{'KcalPH'} && exists $opts->{'CALORIES'} && exists $opts->{'CALORIETIME'} ) {
+		if ( exists $opts->{'KcalPH'} and exists $opts->{'CALORIES'} and exists $opts->{'CALORIETIME'} ) {
 			$kcalph = undef;
-			$h = &BikeLog::Tables::convert_time($_->[$opts->{'CALORIETIME'}]) / 3600;
-			if ( $_->[$opts->{'CALORIES'}] > 0 ) { 
+			if ( defined $_->[$opts->{'CALORIES'}] and $_->[$opts->{'CALORIES'}] =~ /^[0-9]+$/ ) {
+			    $h = &BikeLog::Tables::convert_time($_->[$opts->{'CALORIETIME'}]) / 3600;
 				$cnt[$opts->{'KcalPH'}] += $h;
 				$kcalph = int(($_->[$opts->{'CALORIES'}] / $h) + 0.5);
 			}
@@ -646,17 +651,17 @@ sub update_data {
 		}
 
 		# Insert the Kilocalorie per hour Zone column
-		if ( exists $opts->{'CALORIES'} && exists $opts->{'KcalPH'} ) {
-			$zone = ($_->[$opts->{'KcalPH'}] > 0
+		if ( exists $opts->{'CALORIES'} and exists $opts->{'KcalPH'} ) {
+			$zone = (defined $_->[$opts->{'KcalPH'}] and $_->[$opts->{'KcalPH'}] =~ /^[0-9]+$/
 				? &BikeLog::Tables::_sql('SELECT MAX(zone.zone) FROM zone WHERE ' . $_->[$opts->{'KcalPH'}] . ' >= zone.calorie', 'SCALAR')
 				: undef);
 			splice (@{$_}, $opts->{'KcalPH'} + 1, 0, ($zone));
 		}
 
 		if ( exists $opts->{'POWER'} ) {
-			$zone = ($_->[$opts->{'POWER'}] > 0
-				? &BikeLog::Tables::_sql('SELECT MAX(zone.zone) FROM zone WHERE ' . $_->[$opts->{'POWER'}] . ' >= zone.power', 'SCALAR')
-				: undef);
+                        $zone = (defined $_->[$opts->{'POWER'}] and $_->[$opts->{'POWER'}] =~ /^[0-9]+$/
+			        ? &BikeLog::Tables::_sql('SELECT MAX(zone.zone) FROM zone WHERE ' . $_->[$opts->{'POWER'}] . ' >= zone.power', 'SCALAR')
+                                : undef);
 			splice (@{$_}, $opts->{'POWER'} + 1, 0, ($zone));
 		}
 
@@ -669,24 +674,24 @@ sub update_data {
 			}
 		}
 		$totals->[$opts->{'CALORIES'}] += $_->[$opts->{'CALORIES'}]
-			if ( exists $opts->{'CALORIES'} );
+			if ( exists $opts->{'CALORIES'} and defined $_->[$opts->{'CALORIES'}] and $_->[$opts->{'CALORIES'}] =~ /^[0-9]+$/ );
 		$totals->[$opts->{'TIME'}] += &BikeLog::Tables::convert_time($_->[$opts->{'TIME'}])
 			if ( exists $opts->{'TIME'} );
 
 		# Totals are AVERAGES of these fields.
-		if ( exists $opts->{'HR'} && $_->[$opts->{'HR'}] > 0 ) {
+		if ( exists $opts->{'HR'} and defined $_->[$opts->{'HR'}] and $_->[$opts->{'HR'}] =~ /^[0-9]+$/) {
 			$totals->[$opts->{'HR'}] += $_->[$opts->{'HR'}];
 			$cnt[$opts->{'HR'}]++;
 		}
-		if ( exists $opts->{'WEIGHT'} && $_->[$opts->{'WEIGHT'}] > 0 ) {
+		if ( exists $opts->{'WEIGHT'} and defined $_->[$opts->{'WEIGHT'}] and $_->[$opts->{'WEIGHT'}] =~ /^[0-9]+$/) {
 			$totals->[$opts->{'WEIGHT'}] += $_->[$opts->{'WEIGHT'}];
 			$cnt[$opts->{'WEIGHT'}]++;
 		}
-		#if ( exists $opts->{'POWER'} && $_->[$opts->{'POWER'}] > 0 ) {
+		#if ( exists $opts->{'POWER'} and defined $_->[$opts->{'POWER'}] and $_->[$opts->{'POWER'}] =~ /^[0-9]+$/) {
 		#	$totals->[$opts->{'POWER'}] += $_->[$opts->{'POWER'}];
 		#	$cnt[$opts->{'POWER'}]++;
 		#}
-		if ( exists $opts->{'CADENCE'} && $_->[$opts->{'CADENCE'}] > 0 ) {
+		if ( exists $opts->{'CADENCE'} and defined $_->[$opts->{'CADENCE'}] and $_->[$opts->{'CADENCE'}] =~ /^[0-9]+$/) {
 			$totals->[$opts->{'CADENCE'}] += $_->[$opts->{'CADENCE'}];
 			$cnt[$opts->{'CADENCE'}]++;
 		}
@@ -698,30 +703,31 @@ sub update_data {
 
 		# Totals are the MAX of these fields
 		foreach $field ( @{$opts->{'MAX'}} ) {
-			$totals->[$field] = ( $_->[$field] > $totals->[$field] ? $_->[$field] : $totals->[$field] );
+                        $totals->[$field] = 0 if !defined $totals->[$field];
+			$totals->[$field] = ( defined $_->[$field] and $_->[$field] =~ /^[0-9]+$/ and $_->[$field] > $totals->[$field] ? $_->[$field] : $totals->[$field] );
 		}
 	} @{$data};
 
 	# Now finish updating the totals.
 	if ( exists $opts->{'TIME'} ) {
-		if ( exists $opts->{'SPEED'} && exists $opts->{'DISTANCE'} && $totals->[$opts->{'TIME'}] > 0 ) {
+		if ( exists $opts->{'SPEED'} and exists $opts->{'DISTANCE'} and $totals->[$opts->{'TIME'}] > 0 ) {
 			$totals->[$opts->{'SPEED'}] = int($totals->[$opts->{'DISTANCE'}] / ($totals->[$opts->{'TIME'}]/3600) * 100 + .5) / 100;
 		}
 		$totals->[$opts->{'TIME'}] = &BikeLog::Tables::convert_seconds($totals->[$opts->{'TIME'}]);
 	}
-	if ( exists $opts->{'WEIGHT'} && $cnt[$opts->{'WEIGHT'}] > 0 ) {
+	if ( exists $opts->{'WEIGHT'} and $cnt[$opts->{'WEIGHT'}] > 0 ) {
 		$totals->[$opts->{'WEIGHT'}] = int($totals->[$opts->{'WEIGHT'}] / $cnt[$opts->{'WEIGHT'}] + .5);
 	}
-	#if ( exists $opts->{'POWER'} && $cnt[$opts->{'POWER'}] > 0 ) {
+	#if ( exists $opts->{'POWER'} and $cnt[$opts->{'POWER'}] > 0 ) {
 	#	$totals->[$opts->{'POWER'}] = int($totals->[$opts->{'POWER'}] / $cnt[$opts->{'POWER'}] + .5);
 	#}
-	if ( exists $opts->{'CADENCE'} && $cnt[$opts->{'CADENCE'}] > 0 ) {
+	if ( exists $opts->{'CADENCE'} and defined $cnt[$opts->{'CADENCE'}] and $cnt[$opts->{'CADENCE'}] > 0 ) {
 		$totals->[$opts->{'CADENCE'}] = int($totals->[$opts->{'CADENCE'}] / $cnt[$opts->{'CADENCE'}] + .5);
 	}
-	if ( exists $opts->{'HR'} && $cnt[$opts->{'HR'}] > 0 ) {
+	if ( exists $opts->{'HR'} and $cnt[$opts->{'HR'}] > 0 ) {
 		$totals->[$opts->{'HR'}] = int($totals->[$opts->{'HR'}] / $cnt[$opts->{'HR'}] + .5);
 	}
-	#if ( exists $opts->{'KcalPH'} && $opts->{'CALORIES'} && $cnt[$opts->{'KcalPH'}] > 0 ) {
+	#if ( exists $opts->{'KcalPH'} and $opts->{'CALORIES'} and $cnt[$opts->{'KcalPH'}] > 0 ) {
 	#	$totals->[$opts->{'KcalPH'}] = int($totals->[$opts->{'CALORIES'}] / $cnt[$opts->{'KcalPH'}] + .5);
 	#}
 }
@@ -767,7 +773,7 @@ sub get_data {
 			$d->{$ndx}->{'sum'} = $d->{$ndx}->{'count'} = 0
 				if ( ! exists $d->{$ndx} );
 			
-			$d->{$ndx}->{'sum'} += ( $what eq 'time' ) 
+			$d->{$ndx}->{'sum'} += ( $what eq 'time' )
 				? &BikeLog::Tables::convert_time($row->[0])
 				: $row->[0];
 			$d->{$ndx}->{'count'}++;
@@ -956,7 +962,7 @@ sub create_graph {
 		$img->set(
 			y_number_format => \&BikeLog::Tables::convert_seconds,
 			values_format => \&BikeLog::Tables::convert_seconds2,
-		) if ( $title =~ /time/i && ( $table eq 'trainer' || $table eq 'time' ));
+		) if ( $title =~ /time/i and ( $table eq 'trainer' || $table eq 'time' ));
 	}
 	if ( $table eq 'weight' ) {
 		$img->set(

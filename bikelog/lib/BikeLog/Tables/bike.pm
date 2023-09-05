@@ -1,7 +1,7 @@
 package BikeLog::Tables::bike;
 
 use strict;
-#use warnings;
+use warnings;
 
 use FindBin;
 use Data::Dumper;

@@ -1,7 +1,7 @@
 package BikeLog::Tables::ride;
 
 use strict;
-#use warnings;
+use warnings;
 
 use FindBin;
 use Data::Dumper;
@@ -102,7 +102,7 @@ sub report {
 
 	my $arg = shift @args;
 
-	if ( $arg eq 'mileage' || $arg eq 'distance' ) {
+	if ( defined $arg and ($arg eq 'mileage' or $arg eq 'distance')) {
 		my ($data) = &BikeLog::Tables::get_data('ride', 'distance', @args);
 
 		if ( ref $data eq 'HASH' ) {
@@ -121,7 +121,7 @@ sub report {
 		}
 
 	# The summary options.
-	} elsif ( $arg eq 'time' ) {
+	} elsif ( defined $arg and $arg eq 'time' ) {
 		my $time = BikeLog::Tables::get_data('ride', $arg, @args);
 		if ( ref $time eq 'HASH' ) {
 			my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Time', 'TIME']);
@@ -139,7 +139,7 @@ sub report {
 		}
 
 	# The full report
-	} elsif ( $arg eq 'this' || $arg eq 'last' || $arg eq 'year' || $arg eq 'month' || $arg eq 'start' || $arg eq 'end' || ! defined $arg ) {
+	} elsif (!defined $arg or $arg eq 'this' or $arg eq 'last' or $arg eq 'year' or $arg eq 'month' or $arg eq 'start' or $arg eq 'end') {
 
 		unshift @args, $arg if ( defined $arg );
 

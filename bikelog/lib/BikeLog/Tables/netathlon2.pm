@@ -1,7 +1,7 @@
 package BikeLog::Tables::netathlon2;
 
 use strict;
-#use warnings;
+use warnings;
 
 use FindBin;
 use Data::Dumper;

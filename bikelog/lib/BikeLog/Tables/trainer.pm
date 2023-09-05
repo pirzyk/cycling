@@ -1,7 +1,7 @@
 package BikeLog::Tables::trainer;
 
 use strict;
-#use warnings;
+use warnings;
 
 use FindBin;
 use Data::Dumper;
@@ -56,7 +56,7 @@ sub report {
 	my $arg = shift @args;
 
 	# The summary options.
-	if ( $arg eq 'time' ) {
+	if ( defined $arg and $arg eq 'time' ) {
 		my ($time) = &BikeLog::Tables::get_data('trainer', 'time', @args);
 
 		if ( ref $time eq 'HASH' ) {
@@ -75,7 +75,7 @@ sub report {
 		}
 
 	# The full report
-	} elsif ( $arg eq 'this' || $arg eq 'last' || $arg eq 'year' || $arg eq 'month' || $arg eq 'start' || $arg eq 'end' || ! defined $arg ) {
+	} elsif ( !defined $arg || $arg eq 'this' || $arg eq 'last' || $arg eq 'year' || $arg eq 'month' || $arg eq 'start' || $arg eq 'end' ) {
 
 		unshift @args, $arg if ( defined $arg );
 

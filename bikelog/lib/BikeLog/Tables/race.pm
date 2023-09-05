@@ -1,7 +1,7 @@
 package BikeLog::Tables::race;
 
 use strict;
-#use warnings;
+use warnings;
 
 use FindBin;
 use Data::Dumper;
@@ -67,51 +67,7 @@ sub report {
 	my $arg = shift @args;
 
 	# The summary options.
-	if ( $arg eq 'mileage' || $arg eq 'distance' ) {
-		$type = $arg;
-		$sql = 'SELECT SUM(distance),fk_unit_id FROM race';
-
-		($sql, $groupby) = &BikeLog::Tables::process_date('race', $sql, @args) if ( scalar @args );
-		$sql .= ' GROUP BY fk_unit_id ORDER BY SUM(distance) DESC';
-
-		# Get the unit loopup table.
-		my $u = &BikeLog::Tables::_sql('SELECT * FROM unit', 1);
-
-		# Run the SQL
-		my $data = &BikeLog::Tables::_sql($sql, 1);
-		my ($total, %unit, $default_unit);
-
-		# Look for our default unit type
-		foreach my $row ( @{$u} ) {
-			$unit{$row->[0]} = $row->[1];
-			if ( $type eq 'mileage' && $row->[1] eq 'Mi' ) {
-				$default_unit = $row->[0];
-			}
-		}
-
-		foreach my $row ( @{$data} ) {
-
-			# if we don't have a default unit type, then take the first one,
-			# which will be the largest one, since we ordered by
-			# SUM(distance) DESC;
-			$default_unit = $row->[1]
-				if ( ! defined $default_unit );
-
-			if ( $default_unit == $row->[1] ) {
-				$total += $row->[0];
-			} else {
-				$total += &BikeLog::Tables::convert_unit($row->[1], $default_unit, $row->[0]);
-			}
-		}
-
-		print "$total"
-			.  ($type eq 'distance'
-				? ' ' . $unit{$default_unit}
-				: '')
-			.  "\n";
-
-	# The full report
-	} elsif ( $arg eq 'this' || $arg eq 'last' || $arg eq 'year' || $arg eq 'month' || $arg eq 'start' || $arg eq 'end' || ! defined $arg ) {
+	if ( !defined $arg || $arg eq 'this' || $arg eq 'last' || $arg eq 'year' || $arg eq 'month' || $arg eq 'start' || $arg eq 'end' ) {
 
 		unshift @args, $arg if ( defined $arg );
 
@@ -166,6 +122,50 @@ sub report {
 		&BikeLog::Tables::print_results( $data, \@s, \@totals );
 
 	# barf
+	} elsif ( $arg eq 'mileage' || $arg eq 'distance' ) {
+		$type = $arg;
+		$sql = 'SELECT SUM(distance),fk_unit_id FROM race';
+
+		($sql, $groupby) = &BikeLog::Tables::process_date('race', $sql, @args) if ( scalar @args );
+		$sql .= ' GROUP BY fk_unit_id ORDER BY SUM(distance) DESC';
+
+		# Get the unit loopup table.
+		my $u = &BikeLog::Tables::_sql('SELECT * FROM unit', 1);
+
+		# Run the SQL
+		my $data = &BikeLog::Tables::_sql($sql, 1);
+		my ($total, %unit, $default_unit);
+
+		# Look for our default unit type
+		foreach my $row ( @{$u} ) {
+			$unit{$row->[0]} = $row->[1];
+			if ( $type eq 'mileage' && $row->[1] eq 'Mi' ) {
+				$default_unit = $row->[0];
+			}
+		}
+
+		foreach my $row ( @{$data} ) {
+
+			# if we don't have a default unit type, then take the first one,
+			# which will be the largest one, since we ordered by
+			# SUM(distance) DESC;
+			$default_unit = $row->[1]
+				if ( ! defined $default_unit );
+
+			if ( $default_unit == $row->[1] ) {
+				$total += $row->[0];
+			} else {
+				$total += &BikeLog::Tables::convert_unit($row->[1], $default_unit, $row->[0]);
+			}
+		}
+
+		print "$total"
+			.  ($type eq 'distance'
+				? ' ' . $unit{$default_unit}
+				: '')
+			.  "\n";
+
+	# The full report
 	} else {
 		die "Don't understand 'report race $arg'\n";
 	}

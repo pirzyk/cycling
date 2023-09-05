@@ -1,7 +1,7 @@
 package BikeLog::Tables::weight;
 
 use strict;
-#use warnings;
+use warnings;
 
 use FindBin;
 use Data::Dumper;

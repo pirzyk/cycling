@@ -4,7 +4,7 @@
 #
 
 use strict;
-#use warnings;
+use warnings;
 use DBI;
 use Data::Dumper;
 use GD;
