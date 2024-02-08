@@ -116,7 +116,7 @@ sub report {
 			} sort keys %{$data};
 			&BikeLog::Tables::print_hr(\@s, \@l);
 			printf "Totals\t%d\t%.2lf\n", $totals[1], $totals[2];
-		} else {
+		} elsif (defined $data) {
 			print $data . "\n";
 		}
 
