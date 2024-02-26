@@ -683,7 +683,7 @@ sub update_data {
 			$totals->[$opts->{'HR'}] += $_->[$opts->{'HR'}];
 			$cnt[$opts->{'HR'}]++;
 		}
-		if ( exists $opts->{'WEIGHT'} and defined $_->[$opts->{'WEIGHT'}] and $_->[$opts->{'WEIGHT'}] =~ /^[0-9]+$/) {
+		if ( exists $opts->{'WEIGHT'} and defined $_->[$opts->{'WEIGHT'}] and $_->[$opts->{'WEIGHT'}] =~ /^[0-9]+(\.[0-9]*)?$/) {
 			$totals->[$opts->{'WEIGHT'}] += $_->[$opts->{'WEIGHT'}];
 			$cnt[$opts->{'WEIGHT'}]++;
 		}
@@ -715,7 +715,7 @@ sub update_data {
 		}
 		$totals->[$opts->{'TIME'}] = &BikeLog::Tables::convert_seconds($totals->[$opts->{'TIME'}]);
 	}
-	if ( exists $opts->{'WEIGHT'} and $cnt[$opts->{'WEIGHT'}] > 0 ) {
+	if ( exists $opts->{'WEIGHT'} and defined $cnt[$opts->{'WEIGHT'}] and $cnt[$opts->{'WEIGHT'}] > 0 ) {
 		$totals->[$opts->{'WEIGHT'}] = int($totals->[$opts->{'WEIGHT'}] / $cnt[$opts->{'WEIGHT'}] + .5);
 	}
 	#if ( exists $opts->{'POWER'} and $cnt[$opts->{'POWER'}] > 0 ) {

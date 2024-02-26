@@ -83,7 +83,7 @@ sub report {
 		push @s, ( ['speed', 'REAL'] );
 		push @s, ( ['unit', 'TEXT'] );
 		push @s, ( ['bike', 'TEXT'] );
-		push @s, ( ['weight', 'INTEGER'] );
+		push @s, ( ['weight', 'REAL'] );
 		push @s, @polar_schema[&BikeLog::Tables::_find_schema_field('hr', \@polar_schema)];
 		push @s, ( ['zone', 'INTEGER'] );
 		push @s, @polar_schema[&BikeLog::Tables::_find_schema_field('max', \@polar_schema)];

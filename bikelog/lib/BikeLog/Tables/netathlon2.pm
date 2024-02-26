@@ -86,7 +86,7 @@ sub report {
 	push @s, @schema[&BikeLog::Tables::_find_schema_field('time', \@netathlon2_schema)];
 	push @s, @schema[&BikeLog::Tables::_find_schema_field('distance', \@netathlon2_schema)];
 	push @s, @schema[&BikeLog::Tables::_find_schema_field('speed', \@netathlon2_schema)];
-	push @s, ( ['weight', 'INTEGER'] );
+	push @s, ( ['weight', 'REAL'] );
 	push @s, @schema[&BikeLog::Tables::_find_schema_field('cadence', \@netathlon2_schema)];
 	push @s, @schema[&BikeLog::Tables::_find_schema_field('power', \@netathlon2_schema)];
 	push @s, ( ['zone', 'INTEGER'] );

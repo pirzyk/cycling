@@ -18,7 +18,7 @@ our @EXPORT      = qw();
 
 our @schema = (
 	[ 'date', 'DATE', 'PRIMARY KEY' ],
-	[ 'weight', 'INTEGER' ],
+	[ 'weight', 'REAL' ],
 	[ 'fk_unit_id', 'INTEGER', 'NOT NULL CONSTRAINT fk_weight_unit_id REFERENCES unit(id) ON DELETE CASCADE' ],
 );
 
