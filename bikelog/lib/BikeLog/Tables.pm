@@ -604,6 +604,8 @@ sub process_date {
 
 	#$sql .= " GROUP BY $groupby" if ( length $groupby );
 
+	$sql .= " ORDER BY $table.date";
+
 	return ($sql, $groupby);
 }
 
