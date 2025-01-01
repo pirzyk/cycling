@@ -796,8 +796,8 @@ sub report {
 
 	die "Could not understand 'report $type'\n" if ( $type ne 'time' );
 
-	my ($time1) = &BikeLog::Tables::get_data('trainer', 'time', @args);
-	my ($time2) = &BikeLog::Tables::get_data('ride', 'time', @args);
+	my ($time1) = &BikeLog::Tables::get_data('trainer', 'time', @args) // {};
+	my ($time2) = &BikeLog::Tables::get_data('ride', 'time', @args) // {};
 
 	if ( ref $time1 eq 'HASH' ) {
 		my (%h, %c);
