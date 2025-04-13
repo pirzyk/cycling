@@ -124,7 +124,7 @@ sub report {
 	my (@args) = @_;
 
 	my $arg = shift @args;
-	if ( $arg eq 'max' ) {
+	if ( defined $arg and $arg eq 'max' ) {
 		$arg = shift @args;
 		if ( $arg eq 'speed' ) {
 		}

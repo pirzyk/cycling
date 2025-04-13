@@ -21,6 +21,8 @@ our @schema = (
 	[ 'time', 'TIME' ],
 	[ 'fk_bike_id', 'INTEGER', 'NOT NULL CONSTRAINT fk_trainer_bike_id REFERENCES bike(id) ON DELETE CASCADE' ],
 	[ 'note', 'TEXT' ],
+	[ 'cadence', 'INTEGER' ],
+	[ 'power', 'INTEGER' ],
 );
 
 sub create {
@@ -37,7 +39,7 @@ sub insert {
 	my (@what) = @_;
 	debug ("In BikeLog::Tables::trainer::insert([" . join(',', @what) . "])", 1);
 
-	die "Need " . ( scalar @schema ). " value(s) to insert into trainer table\n\tDate Time Bike Notes\n"
+	die "Need " . ( scalar @schema ). " value(s) to insert into trainer table\n\tDate Time Bike Notes Cadence Power\n"
 		if ( scalar @what != scalar @schema );
 
 	# Massage the date field (today or yesterday)
@@ -95,17 +97,16 @@ sub report {
 		push @s, @polar_schema[&BikeLog::Tables::_find_schema_field('calories', \@polar_schema)];
 		push @s, ( ['cal/hr', 'INTEGER'] );
 		push @s, ( ['zone', 'INTEGER'] );
-		push @s, @netathlon2_schema[&BikeLog::Tables::_find_schema_field('power', \@netathlon2_schema)];
+		push @s, ( ['power', 'INTEGER' ] );
 		push @s, ( ['zone', 'INTEGER'] );
-		push @s, @netathlon2_schema[&BikeLog::Tables::_find_schema_field('cadence', \@netathlon2_schema)];
+		push @s, ( ['cadence', 'INTEGER' ] );
 		push @s, @schema[&BikeLog::Tables::_find_schema_field('note', \@schema)];
 
-		$sql = 'SELECT trainer.date,trainer.time,bike.name,weight.weight,polar.hr,polar.max,polar.calories,polar.time,netathlon2.power,netathlon2.cadence,trainer.note
+		$sql = 'SELECT trainer.date,trainer.time,bike.name,weight.weight,polar.hr,polar.max,polar.calories,polar.time,trainer.power,trainer.cadence,trainer.note
 			FROM trainer
 			LEFT JOIN bike ON trainer.fk_bike_id = bike.id
 			LEFT JOIN weight ON trainer.date = weight.date
-			LEFT JOIN polar ON trainer.date = polar.date
-			LEFT JOIN netathlon2 ON trainer.date = netathlon2.date
+			LEFT JOIN polar ON trainer.date = polar.date AND trainer.time = polar.time
 		';
 		($sql, $groupby) = &BikeLog::Tables::process_date('trainer', $sql, @args) if ( scalar @args );
 		my $data = &BikeLog::Tables::_sql($sql, 1);

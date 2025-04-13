@@ -99,7 +99,7 @@ sub report {
 			LEFT JOIN unit ON race.fk_unit_id = unit.id
 			LEFT JOIN bike ON race.fk_bike_id = bike.id
 			LEFT JOIN weight ON race.date = weight.date
-			LEFT JOIN polar ON race.date = polar.date
+			LEFT JOIN polar ON race.date = polar.date AND race.time = polar.time
 		';
 		($sql, $groupby) = &BikeLog::Tables::process_date('race', $sql, @args) if ( scalar @args );
 		my $data = &BikeLog::Tables::_sql($sql, 1);

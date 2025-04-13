@@ -25,6 +25,8 @@ our @schema = (
 	[ 'fk_bike_id', 'INTEGER', 'NOT NULL CONSTRAINT fk_ride_bike_id REFERENCES bike(id) ON DELETE CASCADE' ],
 	[ 'note', 'TEXT' ],
 	[ 'max', 'REAL' ],
+	[ 'cadence', 'INTEGER' ],
+	[ 'power', 'INTEGER' ],
 );
 
 our @with_schema = (
@@ -65,7 +67,7 @@ sub insert {
 	my (@what) = @_;
 	debug ("In BikeLog::Tables::ride::insert([" . join(',', @what) . "])", 1);
 
-	die "Need " . ( scalar @schema ). " value(s) to insert into ride table\n\tDate Distance (Mi/Km) Time With Bike Notes MaxSpeed\n"
+	die "Need " . ( scalar @schema ). " value(s) to insert into ride table\n\tDate Distance (Mi/Km) Time With Bike Notes MaxSpeed Cadence Power\n"
 		if ( scalar @what != (scalar @schema ) );
 
 	# Massage the date field (today or yesterday)
@@ -84,7 +86,7 @@ sub insert {
 	# Massage the bike field inserting new bike if we need to.
 	$what[4] = &BikeLog::Tables::get_key('bike', 'name', $what[4]);
 
-	&BikeLog::Tables::insert('ride(date,distance,fk_unit_id,time,fk_bike_id,note,max)', @what);
+	&BikeLog::Tables::insert('ride(date,distance,fk_unit_id,time,fk_bike_id,note,max,cadence,power)', @what);
 
 	# Now get the ride_id of the record we just inserted.
 	my $ride_id = &BikeLog::Tables::_sql("SELECT id FROM ride WHERE date = \"$what[0]\" AND distance = \"$what[1]\" AND time = \"$what[3]\"", "SCALAR");
@@ -164,27 +166,30 @@ sub report {
 		push @s, @polar_schema[&BikeLog::Tables::_find_schema_field('calories', \@polar_schema)];
 		push @s, ( ['cal/hr', 'INTEGER'] );
 		push @s, ( ['zone', 'INTEGER'] );
+		push @s, ( ['power', 'INTEGER'] );
+		push @s, ( ['zone', 'INTEGER'] );
+		push @s, ( ['cadence', 'INTEGER'] );
 		push @s, ( ['with', 'TEXT'] );
 		push @s, @schema[&BikeLog::Tables::_find_schema_field('note', \@schema)];
 
-		$sql = 'SELECT ride.date,ride.distance,unit.name,ride.time,ride.max,bike.name,weight.weight,polar.hr,polar.max,polar.calories,polar.time,ride.id,ride.note
+		$sql = 'SELECT ride.date,ride.distance,unit.name,ride.time,ride.max,bike.name,weight.weight,polar.hr,polar.max,polar.calories,polar.time,ride.power,ride.cadence,ride.id,ride.note
 			FROM ride
 			LEFT JOIN unit ON ride.fk_unit_id = unit.id
 			LEFT JOIN bike ON ride.fk_bike_id = bike.id
 			LEFT JOIN weight ON ride.date = weight.date
-			LEFT JOIN polar ON ride.date = polar.date';
+			LEFT JOIN polar ON ride.date = polar.date AND ride.time = polar.time';
 		($sql, $groupby) = &BikeLog::Tables::process_date('ride', $sql, @args) if ( scalar @args );
 		my $data = &BikeLog::Tables::_sql($sql, 1);
 
-		# replace the ride.id field (12) with the array of people I rode with
+		# replace the ride.id field (15) with the array of people I rode with
 		map {
 			my $with = &BikeLog::Tables::_sql ("
 				SELECT name
 				FROM with
 				JOIN link_with ON with.id = link_with.fk_with_id 
-					AND link_with.fk_ride_id == ${$_}[11]",
+					AND link_with.fk_ride_id == ${$_}[13]",
 			'ARRAY');
-			${$_}[11] = join ('/', @$with);
+			${$_}[13] = join ('/', @$with);
 		} @{$data};
 
 		# Add the speed, Calories per Hour and training zone columns and calculate totals.
@@ -197,7 +202,10 @@ sub report {
 			CALORIES => 12,
 			CALORIETIME => 13,
 			KcalPH => 13,
-			MAX => [ 6, 11, 13 ],
+			POWER => 15,
+			CADENCE => 17,
+			MAX => [ 6, 11, 13, 15, 17 ],
+                        SUM => [ 12, ],
 		});
 
 		&BikeLog::Tables::print_results( $data, \@s, \@totals );

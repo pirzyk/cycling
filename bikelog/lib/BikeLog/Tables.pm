@@ -279,6 +279,7 @@ sub _get_schema {
 
 	$sql =~ s/^CREATE TABLE $table \(//;
 	$sql =~ s/\)$//;
+	$sql =~ s/PRIMARY KEY\([^)]*\)//;
 	foreach my $f ( split(/,\s*/, $sql)) {
 		my @a = split(/\s+/, $f);
 		my $name = shift @a;
@@ -479,7 +480,7 @@ sub process_date {
 	my ($arg, $year, $mon, $groupby, $start, $end);
 
 	$arg = shift @args;
-	if ( $arg eq 'this' || $arg eq 'last' ) {
+	if ( defined $arg and $arg eq 'this' || $arg eq 'last' ) {
 		if ( scalar @args ) {
 			my $oarg = $arg;
 			$arg = shift @args;
@@ -604,8 +605,9 @@ sub process_date {
 
 	#$sql .= " GROUP BY $groupby" if ( length $groupby );
 
-	$sql .= " ORDER BY $table.date";
+	$sql .= " ORDER BY $table.date" if ( $table ne 'bike' );
 
+	debug ("In BikeLog::Tables::process_date() sql => $sql", 1);
 	return ($sql, $groupby);
 }
 
@@ -706,7 +708,7 @@ sub update_data {
 		# Totals are the MAX of these fields
 		foreach $field ( @{$opts->{'MAX'}} ) {
                         $totals->[$field] = 0 if !defined $totals->[$field];
-			$totals->[$field] = ( defined $_->[$field] and $_->[$field] =~ /^[0-9]+$/ and $_->[$field] > $totals->[$field] ? $_->[$field] : $totals->[$field] );
+			$totals->[$field] = ( defined $_->[$field] and $_->[$field] =~ /^[0-9\.]+$/ and $_->[$field] > $totals->[$field] ? $_->[$field] : $totals->[$field] );
 		}
 	} @{$data};
 
@@ -777,7 +779,7 @@ sub get_data {
 			
 			$d->{$ndx}->{'sum'} += ( $what eq 'time' )
 				? &BikeLog::Tables::convert_time($row->[0])
-				: $row->[0];
+				: (defined $row->[0] ? $row->[0] : 0);
 			$d->{$ndx}->{'count'}++;
 		} else {
 			$d += ( $what eq 'time' )

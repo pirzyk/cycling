@@ -17,11 +17,11 @@ our @EXPORT_OK   = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT      = qw();
 
 our @schema = (
-	[ 'date', 'DATE', 'PRIMARY KEY' ],
+	[ 'date', 'DATE', ],
 	[ 'hr', 'INTEGER' ],
 	[ 'calories', 'INTEGER' ],
 	[ 'time', 'TIME' ],
-	[ 'max', 'INTEGER' ],
+	[ 'max', 'INTEGER', 'PRIMARY KEY(date, time)' ],
 );
 
 sub create {
