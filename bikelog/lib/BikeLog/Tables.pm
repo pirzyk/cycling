@@ -389,30 +389,42 @@ sub print {
 	print "\n\t" . scalar @{$data} . " Rows\n\n";
 }
 
-sub print_line {
-	my ($val, $length, $cnt, $type) = @_;
-        $val //= '';
-        debug ("In BikeLog::Table::print_line($val, $length, $cnt, $type)", 2);
+sub print_cell {
+    my ($val, $length, $cnt, $type, $last) = @_;
+    $val //= '';
+    debug ("In BikeLog::Table::print_cell($val, $length, $cnt, $type)", 2);
 
-	print ' ' if ( $cnt );
-	if ( $type eq 'HEADER' || !length($val) ) {
-		printf "%-*.*s", $length, $length, $val;
-	} elsif ( $type =~ m/TEXT|CHAR/i and length ($val) ) {
-		printf "%-*.*s", $length, $length, qq($val);
-	} elsif ( $type =~ m/INTEGER/i ) {
-		printf "%*d", $length, ($val + 0);
-	} elsif ( $type =~ m/REAL/i ) {
-		printf '%' . $length . '.2f', ($val + 0.00);
-	} else {
-		printf "%*.*s", $length, $length, $val;
-	}
+    print ' ' if ( $cnt );
+    if ( $type eq 'HEADER' || !length($val) ) {
+        if (defined $last && $last) {
+            printf "%s", $val;
+        } else {
+            printf "%-*.*s", $length, $length, $val;
+        }
+    } elsif ( $type =~ m/TEXT|CHAR/i and length ($val) ) {
+        if (defined $last && $last) {
+            printf "%-s", qq($val);
+        } else {
+            printf "%-*.*s", $length, $length, qq($val);
+        }
+    } elsif ( $type =~ m/INTEGER/i ) {
+        printf "%*d", $length, ($val + 0);
+    } elsif ( $type =~ m/REAL/i ) {
+        printf '%' . $length . '.2f', ($val + 0.00);
+    } else {
+        if (defined $last && $last) {
+            printf "%s", $val;
+        } else {
+            printf "%*.*s", $length, $length, $val;
+        }
+    }
 }
 
 sub print_hr {
 	my ($s, $l) = @_;
 
 	for (my $i = 0; $i < scalar @{$s}; $i++ ) {
-		&print_line (('-' x $l->[$i]), $l->[$i], $i, 'N/A');
+		&print_cell (('-' x $l->[$i]), $l->[$i], $i, 'N/A');
 	}
 	print "\n";
 }
@@ -421,7 +433,7 @@ sub print_header {
 	my ($s, $l) = @_;
 
 	for (my $i = 0; $i < scalar @{$s}; $i++ ) {
-		&print_line ($s->[$i][0], $l->[$i], $i, 'HEADER');
+		&print_cell ($s->[$i][0], $l->[$i], $i, 'HEADER', ($i+1 == scalar @{$s}));
 	}
 	print "\n";
 	print_hr($s, $l);
@@ -460,7 +472,7 @@ sub print_results {
 	&print_header($schema, \@length);
 	foreach my $row ( @{$data} ) {
 		for ($field=0; $field < scalar @{$schema}; $field++) {
-			&print_line(${$row}[$field], $length[$field], $field, $schema->[$field][1]);
+			&print_cell(${$row}[$field], $length[$field], $field, $schema->[$field][1], ($field+1 == scalar @{$schema}));
 		}
 		print "\n";
 	}
@@ -468,8 +480,8 @@ sub print_results {
 	if ( defined $totals ) {
 		print_hr($schema, \@length);
 		for ($field=0; $field < scalar @{$schema}; $field++) {
-			#&print_line($totals->[$field], $length[$field], $field, 'TOTALS');
-			&print_line($totals->[$field], $length[$field], $field, $schema->[$field][1]);
+			#&print_cell($totals->[$field], $length[$field], $field, 'TOTALS');
+			&print_cell($totals->[$field], $length[$field], $field, $schema->[$field][1], ($field+1 == scalar @{$schema}));
 		}
 		print "\n\n";
 	}
@@ -702,7 +714,7 @@ sub update_data {
 
 		# Totals are the SUM of these fields
 		foreach $field ( @{$opts->{'SUM'}} ) {
-			$totals->[$field] += $_->[$field];
+			$totals->[$field] += ( defined $_->[$field] and $_->[$field] =~ /^[0-9\.]+$/ ) ? $_->[$field] : 0;
 		}
 
 		# Totals are the MAX of these fields
