@@ -599,6 +599,7 @@ sub process_date {
 
 	if ( length $year || length $mon ) {
 		if ( length $mon ) {
+                        $mon = (length $mon == 2) ? $mon : "0${mon}";
 			$year = strftime("%Y", localtime())
 				if ( ! length $year );
 			$where .= (length $where ? ' AND ' : '' ) . "$table.date >= '$year-$mon-01' AND $table.date <= '$year-$mon-31'";
