@@ -794,6 +794,10 @@ sub get_data {
 				? &BikeLog::Tables::convert_time($row->[0])
 				: (defined $row->[0] ? $row->[0] : 0);
 			$d->{$ndx}->{'count'}++;
+
+                        # Store the unique date in the hash,
+                        # so we can merge distinctly.
+			$d->{$ndx}->{'days'}->{$row->[1]} = 1;
 		} else {
 			$d += ( $what eq 'time' )
 				? &BikeLog::Tables::convert_time($row->[0])
@@ -815,33 +819,44 @@ sub report {
 	my ($time2) = &BikeLog::Tables::get_data('ride', 'time', @args) // {};
 
 	if ( ref $time1 eq 'HASH' ) {
-		my (%h, %c);
+		my (%h, %d, %c);
 		# Merge the two hashes
 		map {
 			$h{$_} = $time1->{$_}->{'sum'};
-			$h{$_} += $time2->{$_}->{'sum'} if ( exists $time2->{$_} );
 			$c{$_} = $time1->{$_}->{'count'};
-			$c{$_} += $time2->{$_}->{'count'} if ( exists $time2->{$_} );
+                        foreach my $date (keys %{$time1->{$_}->{'days'}}) {
+                            $d{$_}->{$date} = 1;
+                        }
 		} sort keys %{$time1};
 		map {
-			if ( ! exists $h{$_} ) {
-				$h{$_} = $time2->{$_}->{'sum'};
-				$c{$_} = $time2->{$_}->{'count'};
+			if ( exists $h{$_} ) {
+			    $h{$_} += $time2->{$_}->{'sum'};
+			    $c{$_} += $time2->{$_}->{'count'};
+                            foreach my $date (keys %{$time2->{$_}->{'days'}}) {
+                                $d{$_}->{$date} = 1;
+                            }
+                        } else {
+			    $h{$_} = $time2->{$_}->{'sum'};
+			    $c{$_} = $time2->{$_}->{'count'};
 			}
+                        foreach my $date (keys %{$time2->{$_}->{'days'}}) {
+                            $d{$_}->{$date} = 1;
+                        }
 		} sort keys %{$time2};
 
 		# Now print out the data.
-		my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Time', 'TIME']);
-		my (@l) = ( 7, 7, 9 );
+		my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Days', 'INTEGER'], ['Time', 'TIME']);
+		my (@l) = ( 7, 7, 7, 9 );
 		&print_header(\@s, \@l);
 		map {
 			$totals[1] += $c{$_};
-			$totals[2] += $h{$_};
-			printf "%s\t%d\t%s\n", $_, $c{$_}, &BikeLog::Tables::convert_seconds($h{$_});
+			$totals[2] += scalar keys %{$d{$_}};
+			$totals[3] += $h{$_};
+			printf "%s\t%d\t%d\t%s\n", $_, $c{$_}, scalar keys %{$d{$_}}, &BikeLog::Tables::convert_seconds($h{$_});
 		} sort keys %h;
 		&print_hr(\@s, \@l);
 
-		printf "Totals\t%d\t%s\n", $totals[1], &BikeLog::Tables::convert_seconds($totals[2]);
+		printf "Totals\t%d\t%d\t%s\n", $totals[1], $totals[2], &BikeLog::Tables::convert_seconds($totals[3]);
 	} else {
 		print &BikeLog::Tables::convert_seconds($time1 + $time2) . "\n";
 	}
