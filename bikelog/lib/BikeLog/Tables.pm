@@ -315,13 +315,13 @@ sub convert_unit {
 		? &_sql("SELECT name from unit where id = $to_id", 'SCALAR')
 		: $to_id);
 
-	if ( $from eq 'Mi' and $to eq 'Km' ) {
+	if ( $from eq 'Mi' and $to eq 'km' ) {
 		return $value * 1.609344;
-	} elsif ( $from eq 'Km' and $to eq 'Mi' ) {
+	} elsif ( $from eq 'km' and $to eq 'Mi' ) {
 		return $value * 0.621371192;
-	} elsif ( $from eq 'LBs' and $to eq 'Kg' ) {
+	} elsif ( $from eq 'LBs' and $to eq 'kg' ) {
 		return $value * 0.45359237;
-	} elsif ( $from eq 'Kg' and $to eq 'LBs' ) {
+	} elsif ( $from eq 'kg' and $to eq 'LBs' ) {
 		return $value * 2.20462262;
 	} else {
 		die "Don't know how to convert from $from ($from_id) to $to ($to_id)\n";
@@ -627,7 +627,7 @@ sub process_date {
 sub update_data {
 	my ($data, $totals, $opts) = @_;
 	my ($field, @cnt, $h, $kcalph);
-	my $default_unit = 'Mi';
+	my $default_unit = 'km';
 
 	return if ( ! scalar @{$data} );
 
