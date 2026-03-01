@@ -410,7 +410,7 @@ sub print_cell {
     } elsif ( $type =~ m/INTEGER/i ) {
         printf "%*d", $length, ($val + 0);
     } elsif ( $type =~ m/REAL/i ) {
-        printf '%' . $length . '.2f', ($val + 0.00);
+        printf '%' . $length . '.3f', ($val + 0.000);
     } else {
         if (defined $last && $last) {
             printf "%s", $val;
