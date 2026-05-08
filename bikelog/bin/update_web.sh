@@ -2,9 +2,8 @@
 
 FILE=$HOME/Public/mileage.js
 FILE2=$HOME/Public/time.js
-#REMOTE_DIRS="amigo.home.pirzyk.org:/usr/local/www/wordpress/static/mileage
-#    stitch.vpn.pirzyk.org:/usr/local/www/html-www.pirzyk.org/static/mileage"
-REMOTE_DIRS="amigo.home.pirzyk.org:/usr/local/www/wordpress/static/mileage"
+DOMAIN=example.org
+REMOTE_DIRS="www.${DOMAIN}:/usr/local/www/wordpress/static/mileage"
 YEAR=`date "+%Y"`
 FILES="$FILE $FILE2"
 

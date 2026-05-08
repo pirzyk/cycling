@@ -5,7 +5,7 @@
 #
 PROGNAME=$(basename $0)
 TMP_FILE=$HOME/tmp/tmp-$PROGNAME.json
-SECRETS_FILE=$HOME/git/pywithings/secrets.env
+SECRETS_FILE=$HOME/ownCloud/bikelog/secrets.env
 DAY='today'
 START_DATE=$(date -j $(date +%m%d0000) +%s)
 END_DATE=$(date -j $(date -v+1d +%m%d0000) +%s)
