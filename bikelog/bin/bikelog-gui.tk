@@ -1,0 +1,491 @@
+#!/usr/bin/env wish
+#
+#	@(#) bikelog-gui v1.0.0 GUI frontend for BikeLog Training Program
+#
+
+set appName "BikeLog GUI"
+set version 1.0.0
+set bikelogCmd "bin/bikelog-cmd.pl" 
+set debug 0
+set BGColor "white"
+set FGColor "Black"
+
+proc CreateMenu {} {
+	global BGColor appName
+	global debug
+
+	if { $debug } { puts "in CreateMenu {}" }
+
+	#frame .mbar -relief raised -bd 2 -bg $BGColor
+	#pack .mbar -side top -fill x
+	menu .mbar
+	. configure -menu .mbar
+
+	CreateAppMenu .mbar
+	CreateFileMenu .mbar
+
+	focus .mbar
+	tk_menuBar .mbar .mbar.apple .mbar.file
+}
+
+proc CreateAppMenu { .mbar } {
+	global BGColor FGColor appName
+	global debug
+
+	if { $debug } { puts "in CreateAppMenu {}" }
+
+	menu .mbar.apple -tearoff 0
+	.mbar.apple add command -label "About $appName" -command CreateAbout
+	#.mbar.apple add command -label "Quit $appName" -command exit
+	.mbar add cascade -label "Apple" -menu .mbar.apple
+}
+
+proc CreateFileMenu { .mbar } {
+	global debug
+
+	if { $debug } { puts "in CreateFileMenu {}" }
+
+	menu .mbar.file -tearoff 0
+	.mbar.file add command -label "File" 
+}
+
+proc CreateAbout {} {
+	global BGColor FGColor appName version
+	global debug
+
+	if { $debug } { puts "in CreateAbout {}" }
+
+	toplevel .about -class Dialog -bg $BGColor
+	wm title .about  "About $appName"
+	frame .about.f -bg $BGColor
+	pack .about.f
+
+	message .about.f.msg -takefocus 1 -width 200 -padx 30 -pady 20 -text "$appName $version" -bg $BGColor -fg $FGColor
+	pack .about.f.msg
+}
+
+proc CreateBody {} {
+	global BGColor FGColor bikelogCmd
+	global debug
+
+	if { $debug } { puts "in CreateBody {}" }
+
+	frame .body -bg $BGColor
+
+	menubutton .body.entry -menu .body.entry.table -text "Data Entry" -bg $BGColor -fg $FGColor 
+	menu .body.entry.table -bg $BGColor -fg $FGColor 
+	.body.entry.table add command -label "bike" -command "DataEntry_bike"
+	.body.entry.table add command -label "polar" -command "DataEntry_polar"
+	.body.entry.table add command -label "race" -command "DataEntry_race"
+	.body.entry.table add command -label "ride" -command "DataEntry_ride"
+	.body.entry.table add command -label "trainer" -command "DataEntry_trainer"
+	.body.entry.table add command -label "weight" -command "DataEntry_weight"
+	.body.entry.table add command -label "with" -command "DataEntry_with"
+	.body.entry.table add command -label "zone" -command "DataEntry_zone"
+
+	menubutton .body.print -menu .body.print.table -text "Print Table" -bg $BGColor -fg $FGColor 
+	menu .body.print.table -bg $BGColor -fg $FGColor 
+	foreach line [ lsort [ exec $bikelogCmd sql "SELECT name FROM sqlite_master WHERE type = \"table\"" ] ] {
+		if { ! [ string match sql* $line ] } {
+			.body.print.table add command -label $line -command "PrintTable $line"
+		}
+	}
+
+	menubutton .body.report -menu .body.report.t -text "Report" -bg $BGColor -fg $FGColor 
+	menu .body.report.t -type menubar -bg $BGColor -fg $FGColor 
+	foreach report  [ list race ride trainer ] {
+		menu .body.report.t.$report -type menubar -bg $BGColor -fg $FGColor 
+		.body.report.t add cascade -menu .body.report.t.$report -label $report
+		.body.report.t.$report add command -label "All" -command "RunReport $report \"\" \"\""
+		.body.report.t.$report add command -label "this month" -command "RunReport $report this month"
+		.body.report.t.$report add command -label "last month" -command "RunReport $report last month"
+		.body.report.t.$report add command -label "this year" -command "RunReport $report this year"
+		.body.report.t.$report add command -label "last year" -command "RunReport $report last year"
+	}
+
+	button .body.graph -text "Graph" -bg $BGColor -fg $FGColor -command "CreateGraph" -width 10
+	#button .body.admin -text "Configure" -bg $BGColor -fg $FGColor -command "CreateAdmin" -width 10
+	button .body.exit -text "Quit" -bg $BGColor -fg $FGColor -command "exit" -width 10
+
+	pack .body -side top
+	pack .body.entry .body.print .body.report .body.graph .body.exit -side left
+	#pack .body.admin -side left
+}
+
+proc CreatePopup { base title table height width } {
+	global BGColor FGColor appName
+	global debug
+
+	if { $debug } { puts "in CreatePopup { $base $title $table $height $width }" }
+
+	toplevel $base$table -class Dialog -bg $BGColor
+	wm title $base$table  "$appName ($title $table)"
+	frame $base$table.f -bg $BGColor
+	frame $base$table.f.b -bg $BGColor
+
+	text $base$table.f.msg -wrap none -takefocus 1 -bg $BGColor -fg $FGColor -yscrollcommand "$base$table.f.yscroll set" -xscrollcommand "$base$table.f.xscroll set" -width $width -height $height
+	scrollbar $base$table.f.yscroll -command "$base$table.f.msg yview" -bg $BGColor
+	scrollbar $base$table.f.xscroll -orient horizontal -command "$base$table.f.msg xview" -bg $BGColor
+
+	button $base$table.f.b.exit -text "Close Window" -bg $BGColor -fg $FGColor -command "destroy $base$table"
+
+	pack $base$table.f
+	pack $base$table.f.yscroll -side right -fill y
+	pack $base$table.f.xscroll -side bottom -fill x
+	pack $base$table.f.msg -side top
+	pack $base$table.f.b -side bottom
+	pack $base$table.f.b.exit -side bottom
+}
+
+proc DataEntry { table } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry { $table }" }
+	
+	toplevel .e$table -class Dialog -bg $BGColor
+	wm title .e$table  "$appName ($table Data Entry)"
+	frame .e$table.f -bg $BGColor
+	frame .e$table.f.b -bg $BGColor
+
+	button .e$table.f.b.commit -text "Commit" -bg $BGColor -fg $FGColor 
+	button .e$table.f.b.exit -text "Close Window" -bg $BGColor -fg $FGColor -command "destroy .e$table"
+
+	pack .e$table.f
+	pack .e$table.f.b -side bottom 
+	pack .e$table.f.b.commit .e$table.f.b.exit -side left
+}
+
+proc _DE_date { window } {
+	global BGColor FGColor
+	global debug
+
+	if { $debug } { puts "in _DE_date { window }" }
+
+	frame $window.f.d -bg $BGColor
+	label $window.f.d.label -text "Date:"  -bg $BGColor
+	entry $window.f.d.date -width 12 -textvariable date -bg $BGColor
+
+	pack $window.f.d $window.f.d.label $window.f.d.date -side left
+}
+
+proc _DE_time { window } {
+	global BGColor FGColor
+	global debug
+
+	if { $debug } { puts "in _DE_time { window }" }
+
+	frame $window.f.t -bg $BGColor
+	label $window.f.t.tlabel -text "Time:"  -bg $BGColor
+	entry $window.f.t.time -width 8 -textvariable time -bg $BGColor
+
+	pack $window.f.t $window.f.t.tlabel $window.f.t.time -side left
+}
+
+proc _DE_bike { window } {
+	global BGColor FGColor bikelogCmd
+	global debug
+
+	if { $debug } { puts "in _DE_bike { window }" }
+
+	frame $window.f.bike -bg $BGColor
+	menubutton $window.f.bike.menu -menu $window.f.bike.menu.list -text "Bike" -bg $BGColor -fg $FGColor 
+	menu $window.f.bike.menu.list -bg $BGColor -fg $FGColor 
+	# Do some fast and loose by replacing all spaces with _,
+	# then later swap back since TCL foreach does not like spaces.
+	set bikes [ string map { " " _ } [ exec $bikelogCmd sql "SELECT name FROM bike" ] ]
+	foreach line [ lsort $bikes ] {
+		set line [ string map { _ " " } $line ]
+		$window.f.bike.menu.list add command -label $line -command "$window.f.bike.menu configure -text \"$line\"; set bike \"$line\""
+	}
+
+	pack $window.f.bike $window.f.bike.menu -side left
+}
+
+proc _DE_notes { window } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in _DE_notes { window }" }
+
+	frame $window.f.n -bg $BGColor
+	label $window.f.n.lnotes -text "Notes:"  -bg $BGColor
+	entry $window.f.n.notes -width 50 -textvariable notes -bg $BGColor
+
+	pack $window.f.n $window.f.n.notes $window.f.n.lnotes -side right
+}
+
+proc _DE_distance { window } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in _DE_distance { window }" }
+
+	frame $window.f.dist -bg $BGColor
+	frame $window.f.dist.u -bg $BGColor
+	label $window.f.dist.ldist -text "Distance:"  -bg $BGColor
+	entry $window.f.dist.dist -width 4 -textvariable dist -bg $BGColor
+
+	radiobutton $window.f.dist.u.mi -text "Mi" -bg $BGColor -fg $FGColor -variable unit -value "Mi"
+	radiobutton $window.f.dist.u.km -text "km" -bg $BGColor -fg $FGColor -variable unit -value "Km"
+
+	pack $window.f.dist $window.f.dist.ldist $window.f.dist.dist $window.f.dist.u -side left 
+	pack $window.f.dist.u.mi $window.f.dist.u.km -side top
+}
+
+proc DataEntry_bike { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_bike {}" }
+
+	DataEntry "bike"
+
+	label .ebike.f.lbike -text "Bike:"  -bg $BGColor
+	entry .ebike.f.bike -width 20 -textvariable bike -bg $BGColor
+
+	label .ebike.f.lserial -text "Serial:"  -bg $BGColor
+	entry .ebike.f.serial -width 20 -textvariable serial -bg $BGColor
+
+	pack .ebike.f.lbike .ebike.f.bike .ebike.f.lserial .ebike.f.serial -side left
+
+	.ebike.f.b.commit configure -command "exec $bikelogCmd insert bike \$bike \$serial; destroy .ebike"
+}
+
+proc DataEntry_ride { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_ride {}" }
+
+	DataEntry "ride"
+
+	_DE_date .eride
+
+	_DE_time .eride
+
+	_DE_distance .eride
+
+	_DE_bike .eride
+
+	label .eride.f.lmaxspd -text "Max Speed:"  -bg $BGColor
+	entry .eride.f.maxspd -width 5 -textvariable maxspd -bg $BGColor
+
+	menubutton .eride.f.with -menu .eride.f.with.list -text "With" -bg $BGColor -fg $FGColor 
+	menu .eride.f.with.list -bg $BGColor -fg $FGColor 
+	foreach line [ lsort [ exec $bikelogCmd sql "SELECT name FROM with" ] ] {
+		.eride.f.with.list add command -label $line -command ".eride.f.with configure -text \"$line\"; set with \"$line\""
+	}
+
+	_DE_notes .eride
+
+	pack .eride.f.lmaxspd .eride.f.maxspd .eride.f.with -side left
+
+	.eride.f.b.commit configure -command "exec $bikelogCmd insert ride \$date \$dist \$unit \$time \$with \"\$bike\" \"\$notes\" \$maxspd; destroy .eride"
+}
+
+proc DataEntry_race { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_race {}" }
+
+	DataEntry "race"
+
+	_DE_date .erace
+
+	_DE_time .erace
+
+	_DE_distance .erace
+
+	_DE_bike .erace
+
+	label .erace.f.lwatt -text "Power:"  -bg $BGColor
+	entry .erace.f.watt -width 5 -textvariable watt -bg $BGColor
+	pack .erace.f.lwatt .erace.f.watt -side left
+
+	_DE_notes .erace
+
+	.erace.f.b.commit configure -command "exec $bikelogCmd insert race \$date \$dist \$unit \$time \"\$bike\" \"\$notes\" \$watt; destroy .erace"
+}
+
+proc DataEntry_trainer { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_trainer {}" }
+
+	DataEntry "trainer"
+
+	_DE_date .etrainer
+
+	_DE_time .etrainer
+
+	_DE_bike .etrainer
+
+	_DE_notes .etrainer
+
+	.etrainer.f.b.commit configure -command "exec $bikelogCmd insert trainer \$date \$time \"\$bike\" \"\$notes\"; destroy .etrainer"
+}
+
+proc DataEntry_polar { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_polar {}" }
+
+	DataEntry "polar"
+
+	_DE_date .epolar
+
+	_DE_time .epolar
+
+	label .epolar.f.lcal -text "Calories:"  -bg $BGColor
+	entry .epolar.f.cal -width 5 -textvariable cal -bg $BGColor
+
+	label .epolar.f.lhr -text "Heart Rate:"  -bg $BGColor
+	entry .epolar.f.hr -width 4 -textvariable hr -bg $BGColor
+
+	label .epolar.f.lmaxhr -text "Max Heart Rate:"  -bg $BGColor
+	entry .epolar.f.maxhr -width 4 -textvariable maxhr -bg $BGColor
+
+	.epolar.f.b.commit configure -command "exec $bikelogCmd insert polar \$date \$hr \$cal \$time \$maxhr; destroy .epolar"
+
+	pack .epolar.f.lcal .epolar.f.cal .epolar.f.lhr .epolar.f.hr .epolar.f.lmaxhr .epolar.f.maxhr -side left
+}
+
+proc DataEntry_weight { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_weight {}" }
+
+	DataEntry "weight"
+
+	_DE_date .eweight
+
+	label .eweight.f.lweight -text "Weight:"  -bg $BGColor
+	entry .eweight.f.weight -width 4 -textvariable weight -bg $BGColor
+
+	frame .eweight.f.u
+	radiobutton .eweight.f.u.lbs -text "LBs" -bg $BGColor -fg $FGColor -variable unit -value "LBs"
+	radiobutton .eweight.f.u.kgs -text "Kg" -bg $BGColor -fg $FGColor -variable unit -value "Kg"
+
+	pack .eweight.f.lweight .eweight.f.weight .eweight.f.u -side left 
+	pack .eweight.f.u.lbs .eweight.f.u.kgs -side top
+
+	.eweight.f.b.commit configure -command "exec $bikelogCmd insert weight \$date \$weight \$unit; destroy .eweight"
+}
+
+proc DataEntry_with { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_with {}" }
+
+	DataEntry "with"
+
+	label .ewith.f.lwith -text "With:"  -bg $BGColor
+	entry .ewith.f.with -width 20 -textvariable with -bg $BGColor
+
+	pack .ewith.f.lwith .ewith.f.with -side left
+
+	.ewith.f.b.commit configure -command "exec $bikelogCmd insert with \$with; destroy .ewith"
+}
+
+proc DataEntry_zone { } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in DataEntry_zone {}" }
+
+	DataEntry "zone"
+
+	frame .ezone.f.l
+	pack .ezone.f.l -side left
+	foreach u  [ list hr calorie power  ] {
+		radiobutton .ezone.f.l.$u -text $u -bg $BGColor -fg $FGColor -variable unit -value $u
+		pack .ezone.f.l.$u -side top
+	}
+
+	label .ezone.f.lvalue -text "Value:"  -bg $BGColor
+	entry .ezone.f.value -width 4 -textvariable zone -bg $BGColor
+
+	pack .ezone.f.lvalue .ezone.f.value -side left 
+
+	.ezone.f.b.commit configure -command "exec $bikelogCmd set zone \$unit \$zone; destroy .ezone"
+}
+
+proc PrintTable { table } {
+	global BGColor FGColor appName bikelogCmd
+	global debug
+
+	if { $debug } { puts "in PrintTable { $table }" }
+
+	CreatePopup ".p" "Print" $table 24 80
+
+	.p$table.f.msg insert end [ exec $bikelogCmd print $table ]
+}
+
+proc CreateDataEntry {} {
+	global BGColor FGColor
+	global debug
+
+	if { $debug } { puts "in CreateDataEntry {}" }
+}
+
+proc CreateGraph {} {
+	global BGColor FGColor
+	global debug
+
+	if { $debug } { puts "in CreateGraph {}" }
+}
+
+proc RunReport {table this what} {
+	global BGColor FGColor bikelogCmd
+	global debug
+
+	if { $debug } { puts "in RunReport { $table $this $what }" }
+
+	if { $this == 1 } { set this "this" }
+
+	CreatePopup ".r" "Report" $table 30 120
+
+	if { $this != "" && $what != "" } {
+		.r$table.f.msg insert end [ exec $bikelogCmd report $table $this $what ]
+	} else {
+		.r$table.f.msg insert end [ exec $bikelogCmd report $table ]
+	}
+}
+
+proc CreateAdmin {} {
+	global BGColor FGColor
+	global debug
+
+	if { $debug } { puts "in CreateAdmin {}" }
+}
+
+for { set i 0 } { $i < $argc } { incr i } {
+	switch -- [ lindex $argv $i ] {
+		-debug { set debug 1; puts "Debugging Turned on" }
+	}
+}
+
+proc Main {} {
+	global debug
+
+	if { $debug } { puts "in Main {}" }
+
+	CreateMenu
+	CreateBody
+	focus .
+}
+
+if { $debug } { puts "Starting BikeLog GUI" }
+tk appname $appName
+wm title . $appName
+# FIXME iconbitmaps
+#wm iconbitmap . @$libDir/bikelog.xpm
+#wm iconmask . @$libDir/bikelogmask.xpm
+
+Main
