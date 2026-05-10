@@ -1,5 +1,5 @@
 #
-#  Copyright 2009 Jim Pirzyk / pirzyk.org
+#  Copyright 2009-2026 Jim Pirzyk / pirzyk.org
 #  All rights reserved.
 #
 #  Makefile.PL

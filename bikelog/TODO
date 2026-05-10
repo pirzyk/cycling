@@ -1,46 +1,17 @@
 * Fixes/Updates
-	* Changes
-		* Rename polar module to polar F6
-		* Rename ride module to cateye astrale
-	* Data Entry
-		* Reset values after commit.
-* New Modules
-	* PowerTap Module
-	* Location Module
-	* CompuTrainer Module
+    * Changes
+        * Rename polar module to hrm
+    * Data Entry
+        * Reset values after commit.
+* New Modules?
+    * Location Module
 * GUI support
-	* tcl TK so we have native Mac OS X Support
+    * Complete rewrite, not being used now.
 * Export/Dump data routines
+    * sqlite commands
 * Create Makefile.PL
-	* install target (install in $HOME if not root)
-	* test target (load all modules at least)
+    * install target (install in $HOME if not root)
+    * test target (load all modules at least)
 * graph sub-command
-	* use GD to create image files.
-* report sub-command
-	* group by month and year
-
-	* race [[this] (year|month) [X]]
-		* Displays date, distance (and units), time, speed, bike, weight, average HR, max HR, calories, calories per hour, notes
-			for the time period specificed (or all in DB if not).
-		* And totals at the bottom.
-	* race mileage [[this] (year|month) [X]] [ groupby (month|year) ]
-		* Displays total racing distance (normalized to miles) for time peroid specificed (or all in DB if not).
-	* race distance [[this] (year|month) [X]] [ groupby (month|year) ]
-		* Displays total racing distance (and units) for time peroid specificed (or all in DB if not).
-
-	* ride [[this] (year|month) [X]]
-		* Displays date, distance (and units), time, speed, max speed, bike, weight, average HR, max HR, calories, calories per hour, with, notes
-			for the time period specificed (or all in DB if not).
-		* And totals at the bottom.
-	* ride mileage ( see race mileage ).
-	* ride distance ( see race distance ).
-	* ride time [[this] (year|month) [X]] [ groupby (month|year) ]
-		* Displays total ride time for time peroid specificed (or all in DB if not).
-
-	* trainer [[this] (year|month) [X]]
-		* Displays date, time, bike, weight, average HR, calories, calories per hour, notes
-			for the time period specificed (or all in DB if not).
-		* Adds NetAthlon data of Average Power, Average Cadence, Distance and Speed
-		* And totals at the bottom.
-	* trainer time [[this] (year|month) [X]] [ groupby (month|year) ]
-		* Displays total trainer time spent for time peroid specificed (or all in DB if not).
+    * use GD to create image files.
+* rewrite report sub commands to use SQL syntax
