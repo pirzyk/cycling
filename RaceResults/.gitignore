@@ -1,0 +1,5 @@
+*.sqlite
+*.list
+db/*.sql
+cache/*.json
+.google-api.key

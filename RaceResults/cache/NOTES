@@ -1,0 +1,10 @@
+Useful jq queries against these cache files
+
+Get the spreadsheetId from the metadata json file
+jq '.spreadsheetId' $FILE
+
+Get the spreadsheet title
+jq  '.properties.title' $FILE
+
+Get the list of tabs/shees in the file
+jq '.sheets.[].properties.title'
