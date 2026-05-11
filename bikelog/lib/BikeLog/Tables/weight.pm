@@ -17,59 +17,60 @@ our @EXPORT_OK   = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT      = qw();
 
 our @schema = (
-	[ 'date', 'DATE', 'PRIMARY KEY' ],
-	[ 'weight', 'REAL' ],
-	[ 'fk_unit_id', 'INTEGER', 'NOT NULL CONSTRAINT fk_weight_unit_id REFERENCES unit(id) ON DELETE CASCADE' ],
+    [ 'date', 'DATE', 'PRIMARY KEY' ],
+    [ 'weight', 'REAL', 'NOT NULL CHECK(weight > 0)' ],
+    [ 'fk_unit_id', 'INTEGER', 'NOT NULL CONSTRAINT fk_weight_unit_id REFERENCES unit(id) ON DELETE CASCADE' ],
+    [ 'fat_o', 'REAL', 'CHECK(fat_p IS NULL OR fat_p > 0)' ],
 );
 
 sub create {
-	BikeLog::Tables::create( 'weight', @schema );
+    BikeLog::Tables::create( 'weight', @schema );
 
-	# Triggers for the unit field in the weight table
-	&BikeLog::Tables::create_fk_triggers('weight', 'fk_unit_id', 'unit', 'id');
+    # Triggers for the unit field in the weight table
+    &BikeLog::Tables::create_fk_triggers('weight', 'fk_unit_id', 'unit', 'id');
 
-	&BikeLog::Tables::create_date_triggers( 'weight', 'date');
+    &BikeLog::Tables::create_date_triggers( 'weight', 'date');
 }
 
 sub insert {
-	my (@what) = @_;
-	debug ("In BikeLog::Tables::weight::insert([" . join(',', @what) . "])", 1);
+    my (@what) = @_;
+    debug ("In BikeLog::Tables::weight::insert([" . join(',', @what) . "])", 1);
 
-	die "Need " . ( scalar @schema ). " value(s) to insert into weight table\n\tDate Weight (LBs/Kg)\n"
-		if ( scalar @what != (scalar @schema ) );
+    die "Need " . ( scalar @schema ). " value(s) to insert into weight table\n\tDate Weight (LBs/Kg) Fat%\n"
+        if ( scalar @what != (scalar @schema ) );
 
-	# Massage the date field (today or yesterday)
-	$what[0] = &BikeLog::Tables::convert_date($what[0]);
+    # Massage the date field (today or yesterday)
+    $what[0] = &BikeLog::Tables::convert_date($what[0]);
 
-	# Massage the unit field (kg or lbs)
-	$what[2] = &BikeLog::Tables::get_key('unit', 'name', $what[2]);
+    # Massage the unit field (kg or lbs)
+    $what[2] = &BikeLog::Tables::get_key('unit', 'name', $what[2]);
 
-	&BikeLog::Tables::insert('weight(date,weight,fk_unit_id)', @what);
+    &BikeLog::Tables::insert('weight(date,weight,fk_unit_id, fat_p)', @what);
 }
 
 sub graph {
-	my (@args) = @_;
-	my $sql = 'SELECT weight,date FROM weight';
-	my ($groupby, @d, @w);
+    my (@args) = @_;
+    my $sql = 'SELECT weight,date FROM weight';
+    my ($groupby, @d, @w);
 
-	($sql, $groupby) = &BikeLog::Tables::process_date('weight', $sql, @args) if ( scalar @args );
+    ($sql, $groupby) = &BikeLog::Tables::process_date('weight', $sql, @args) if ( scalar @args );
 
-	map {
-		push @w, $_->[0];
-		push @d, $_->[1];
-	} @{&BikeLog::Tables::_sql($sql, 1)};
-	my @data = ( [ @d ], [ @w ], );
+    map {
+        push @w, $_->[0];
+        push @d, $_->[1];
+    } @{&BikeLog::Tables::_sql($sql, 1)};
+    my @data = ( [ @d ], [ @w ], );
 
-	&BikeLog::Tables::create_graph(
-		'weight',
-		'Weight',
-		'Date',
-		'LBs',
-		undef,
-		'weight',
-		undef,
-		@data,
-	);
+    &BikeLog::Tables::create_graph(
+        'weight',
+        'Weight',
+        'Date',
+        'LBs',
+        undef,
+        'weight',
+        undef,
+        @data,
+    );
 }
 
 1;

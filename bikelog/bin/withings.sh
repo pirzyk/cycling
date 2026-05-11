@@ -59,27 +59,37 @@ fi
 
 # TODO: Handle case where we might not have updated in a few days
 #       like on vacation or so
-curl -o $TMP_FILE --silent --header "Authorization: Bearer ${ACCESS_TOKEN}" --data "action=getmeas&meastype=1&startdate=${START_DATE}&enddate=${END_DATE}" 'https://wbsapi.withings.net/measure'
+curl -o $TMP_FILE --silent --header "Authorization: Bearer ${ACCESS_TOKEN}" --data "action=getmeas&meastypes=1,6&startdate=${START_DATE}&enddate=${END_DATE}" 'https://wbsapi.withings.net/measure'
 
-value=$(cat $TMP_FILE | jq -r .body.measuregrps[0].measures[0].value)
-unit=$(cat $TMP_FILE | jq -r .body.measuregrps[0].measures[0].unit)
-# Verify we got a weight value, should be 1 per the API:
+# Weight value, type should be 1 per the API (and 6 for the fat percentage):
 #   https://developer.withings.com/api-reference/#tag/measure/operation/measure-getmeas
-tpe=$(cat $TMP_FILE | jq -r .body.measuregrps[0].measures[0].type)
-if [ ${tpe:-null} -eq 1 -a ${value:-null} != null -a "${unit:-null}" != null ]; then
+w_value=$(cat $TMP_FILE | jq -r '.body.measuregrps[0].measures[] | select(.type==1) | .value')
+w_unit=$(cat $TMP_FILE | jq -r '.body.measuregrps[0].measures[] | select(.type==1) | .unit')
+f_value=$(cat $TMP_FILE | jq -r '.body.measuregrps[0].measures[] | select(.type==6) | .value')
+f_unit=$(cat $TMP_FILE | jq -r '.body.measuregrps[0].measures[] | select(.type==6) | .unit')
+
+if [ ${w_value:-null} != null -a "${w_unit:-null}" != null -a ${f_value:-null} != null -a "${f_unit:-null}" != null ]; then
     # Seems that withings store weight values as grams, so the unit says to covert to kgs
     # There is no info in the result saying this is metric vs imperial
-    unit=$(( 10 ** ($unit * -1) ))
+    w_unit=$(( 10 ** ($w_unit * -1) ))
+    f_unit=$(( 10 ** ($f_unit * -1) ))
 
     # Since we are using integer division, we need to get the fractional as a seperate step
-    weight=$(( $value / $unit ))
-    frac=$(( $value % $unit ))
+    wint=$(( $w_value / $w_unit ))
+    wfrac=$(( $w_value % $w_unit ))
+    fint=$(( $f_value / $f_unit ))
+    ffrac=$(( $f_value % $f_unit ))
+
+    # BUG: doing fractional units, we loose
+    #       the leading zeros, so handle that case.
+    weight=$(printf "%d.%3.3d" $wint $wfrac)
+    fatp=$(printf "%d.%3.3d" $fint $ffrac)
 
     # TODO: Write to the db directly...
     #       but verify we didn't already record this value
-    echo "bin/bikelog-cmd.pl insert weight $DAY ${weight}.${frac} kg"
+    echo "bin/bikelog-cmd.pl insert weight $DAY ${weight} kg ${fatp}"
     if [ ${INSERT:=0} -eq 1 ]; then
-        ( cd $HOME/ownCloud/bikelog; bin/bikelog-cmd.pl insert weight $DAY ${weight}.${frac} kg )
+        ( cd $HOME/ownCloud/bikelog; bin/bikelog-cmd.pl insert weight $DAY ${weight} kg ${fatp} )
     fi
 else
     echo "Could not retrieve weight data: "
