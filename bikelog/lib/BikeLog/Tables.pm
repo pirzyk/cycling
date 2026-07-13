@@ -245,7 +245,7 @@ sub insert {
         }
 	debug ("In BikeLog::Tables::insert($table, [$str])", 2);
 
-	&_sql ("INSERT INTO $table VALUES ($str)");
+	&_sql ("INSERT INTO $table VALUES ($str) ON CONFLICT DO NOTHING");
 }
 
 sub has_date {

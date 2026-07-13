@@ -1,14 +1,14 @@
 * Fixes/Updates
     * Changes
         * Rename polar module to hrm
-    * Data Entry
-        * Reset values after commit.
 * New Modules?
     * Location Module
 * GUI support
     * Complete rewrite, not being used now.
 * Export/Dump data routines
     * sqlite commands
+* Import data directly from workout files
+    * Geo::FIT, Geo:GCX, Geo::Gpx
 * Create Makefile.PL
     * install target (install in $HOME if not root)
     * test target (load all modules at least)
