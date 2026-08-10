@@ -9,7 +9,7 @@ SECRETS_FILE=$HOME/ownCloud/bikelog/secrets.env
 
 # Find the last entry we have in our BikeLog DB
 DB_DATE=$(sqlite3 --list $HOME/ownCloud/bikelog/db/BikeLog-pirzyk.sqlite "select max(date) from weight")
-LASTDATE=$(date -j -f '%Y-%m-%d %H:%M:%S' "${DB_DATE} 00:00:00" +%s)
+STARTDATE=$(date -j -f '%Y-%m-%d %H:%M:%S' "${DB_DATE} 00:00:00" +%s)
 
 for arg in $*; do
     case $arg in
@@ -54,7 +54,7 @@ else
 fi
 
 # Ask for all data since the last date we stored in the BikeLog DB, we will get that last entry (overlapping range).
-curl -o $TMP_FILE --silent --header "Authorization: Bearer ${ACCESS_TOKEN}" --data "action=getmeas&meastypes=1,6&lastupdate=${LASTDATE}" 'https://wbsapi.withings.net/measure'
+curl -o $TMP_FILE --silent --header "Authorization: Bearer ${ACCESS_TOKEN}" --data "action=getmeas&meastypes=1,6&startdate=${STARTDATE}" 'https://wbsapi.withings.net/measure'
 
 # Find how many days we got returned
 days=$(cat $TMP_FILE | jq '.body.measuregrps | length')
