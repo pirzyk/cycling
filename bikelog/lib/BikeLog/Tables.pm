@@ -104,13 +104,14 @@ sub _sql {
 
 		if ( defined $type ) {
 			my $ref = $sth->fetchall_arrayref;
-			if ( $type eq 'ARRAY' ) {
+                        my $r = ref $ref;
+			if ( $r eq 'ARRAY' and $type eq 'ARRAY' ) {
 				my @a;
 				foreach my $i ( @{$ref} ) {
 					map { push @a, $_ } @{$i};
 				}
 				return ( \@a );
-			} elsif ( $type eq 'SCALAR' ) {
+			} elsif ( $r eq 'ARRAY' and exists ${$ref}[0][0] and $type eq 'SCALAR' ) {
 				debug ("Returing (" . ${$ref}[0][0] . ")", 4);
 				return ${$ref}[0][0];
 			} else {
