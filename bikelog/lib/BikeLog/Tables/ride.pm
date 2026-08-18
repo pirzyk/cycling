@@ -101,23 +101,25 @@ sub insert {
 sub report {
 	my (@args) = @_;
 	my ($sql, $type, $groupby, @totals);
+        my $max = 6; # Set for "Totals"
 
 	my $arg = shift @args;
 
 	if ( defined $arg and ($arg eq 'mileage' or $arg eq 'distance')) {
 		my ($data) = &BikeLog::Tables::get_data('ride', 'distance', @args);
+                map { $max = length($_) if length($_) > $max; } keys %{$data};
 
 		if ( ref $data eq 'HASH' ) {
 			my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Distance', 'REAL']);
-			my (@l) = ( 7, 7, 9 );
+			my (@l) = ( $max, 5, 8 );
 			&BikeLog::Tables::print_header(\@s, \@l);
 			map {
 				$totals[1] += $data->{$_}->{'count'};
 				$totals[2] += $data->{$_}->{'sum'};
-				printf "%s\t%d\t%s\n", $_, $data->{$_}->{'count'}, $data->{$_}->{'sum'};
+				printf "%-*.*s   %3d %8.8s\n", $max, $max, $_, $data->{$_}->{'count'}, $data->{$_}->{'sum'};
 			} sort keys %{$data};
 			&BikeLog::Tables::print_hr(\@s, \@l);
-			printf "Totals\t%d\t%.2lf\n", $totals[1], $totals[2];
+			printf "%-*.*s   %3d %8.2lf\n", $max, $max, 'Totals', $totals[1], $totals[2];
 		} elsif (defined $data) {
 			print $data . "\n";
 		}
@@ -125,17 +127,18 @@ sub report {
 	# The summary options.
 	} elsif ( defined $arg and $arg eq 'time' ) {
 		my $time = BikeLog::Tables::get_data('ride', $arg, @args);
+                map { $max = length($_) if length($_) > $max; } keys %{$time};
 		if ( ref $time eq 'HASH' ) {
 			my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Time', 'TIME']);
-			my (@l) = ( 7, 7, 9 );
+			my (@l) = ( $max, 7, 9 );
 			&BikeLog::Tables::print_header(\@s, \@l);
 			map {
 				$totals[1] += $time->{$_}->{'count'};
 				$totals[2] += $time->{$_}->{'sum'};
-				printf "%s\t%d\t%s\n", $_, $time->{$_}->{'count'}, &BikeLog::Tables::convert_seconds($time->{$_}->{'sum'});
+				printf "%-*.*s\t%d\t%s\n", $max, $max, $_, $time->{$_}->{'count'}, &BikeLog::Tables::convert_seconds($time->{$_}->{'sum'});
 			} sort keys %{$time};
 			&BikeLog::Tables::print_hr(\@s, \@l);
-			printf "Totals\t%d\t%s\n", $totals[1], &BikeLog::Tables::convert_seconds($totals[2]);
+			printf "%-*.*s\t%d\t%s\n", $max, $max, 'Totals', $totals[1], &BikeLog::Tables::convert_seconds($totals[2]);
 		} else {
 			print &BikeLog::Tables::convert_seconds($time) . "\n";
 		}

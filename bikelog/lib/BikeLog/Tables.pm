@@ -813,6 +813,7 @@ sub report {
 	my (@args) = @_;
 	my (@totals);
 	my $type = shift @args;
+        my $max = 6;    # Set for Totals string
 
 	die "Could not understand 'report $type'\n" if ( $type ne 'time' );
 
@@ -828,6 +829,7 @@ sub report {
                         foreach my $date (keys %{$time1->{$_}->{'days'}}) {
                             $d{$_}->{$date} = 1;
                         }
+                        $max = length($_) if length($_) > $max;
 		} sort keys %{$time1};
 		map {
 			if ( exists $h{$_} ) {
@@ -843,21 +845,22 @@ sub report {
                         foreach my $date (keys %{$time2->{$_}->{'days'}}) {
                             $d{$_}->{$date} = 1;
                         }
+                        $max = length($_) if length($_) > $max;
 		} sort keys %{$time2};
 
 		# Now print out the data.
 		my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Days', 'INTEGER'], ['Time', 'TIME']);
-		my (@l) = ( 7, 7, 7, 9 );
+		my (@l) = ( $max, 5, 4, 9 );
 		&print_header(\@s, \@l);
 		map {
 			$totals[1] += $c{$_};
 			$totals[2] += scalar keys %{$d{$_}};
 			$totals[3] += $h{$_};
-			printf "%s\t%d\t%d\t%s\n", $_, $c{$_}, scalar keys %{$d{$_}}, &BikeLog::Tables::convert_seconds($h{$_});
+			printf "%-*.*s   %3d  %3d %9.9s\n", $max, $max, $_, $c{$_}, scalar keys %{$d{$_}}, &BikeLog::Tables::convert_seconds($h{$_});
 		} sort keys %h;
 		&print_hr(\@s, \@l);
 
-		printf "Totals\t%d\t%d\t%s\n", $totals[1], $totals[2], &BikeLog::Tables::convert_seconds($totals[3]);
+		printf "%-*.*s   %3d  %3d %9.9s\n", $max, $max, 'Totals', $totals[1], $totals[2], &BikeLog::Tables::convert_seconds($totals[3]);
 	} else {
 		print &BikeLog::Tables::convert_seconds($time1 + $time2) . "\n";
 	}
