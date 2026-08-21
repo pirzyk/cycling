@@ -110,16 +110,18 @@ sub report {
                 map { $max = length($_) if length($_) > $max; } keys %{$data};
 
 		if ( ref $data eq 'HASH' ) {
-			my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Distance', 'REAL']);
-			my (@l) = ( $max, 5, 8 );
+			my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Days', 'INTEGER'], ['Distance', 'REAL']);
+			my (@l) = ( $max, 5, 4, 8 );
 			&BikeLog::Tables::print_header(\@s, \@l);
+                        $totals[2] = 0;
 			map {
 				$totals[1] += $data->{$_}->{'count'};
-				$totals[2] += $data->{$_}->{'sum'};
-				printf "%-*.*s   %3d %8.8s\n", $max, $max, $_, $data->{$_}->{'count'}, $data->{$_}->{'sum'};
+				$totals[3] += $data->{$_}->{'sum'};
+                                $totals[2] += scalar keys %{$data->{$_}->{'days'}};
+				printf "%-*.*s   %3d  %3d %8.8s\n", $max, $max, $_, $data->{$_}->{'count'}, scalar keys %{$data->{$_}->{'days'}}, $data->{$_}->{'sum'};
 			} sort keys %{$data};
 			&BikeLog::Tables::print_hr(\@s, \@l);
-			printf "%-*.*s   %3d %8.2lf\n", $max, $max, 'Totals', $totals[1], $totals[2];
+			printf "%-*.*s   %3d  %3d %8.2lf\n", $max, $max, 'Totals', $totals[1], $totals[2], $totals[3];
 		} elsif (defined $data) {
 			print $data . "\n";
 		}
@@ -129,16 +131,18 @@ sub report {
 		my $time = BikeLog::Tables::get_data('ride', $arg, @args);
                 map { $max = length($_) if length($_) > $max; } keys %{$time};
 		if ( ref $time eq 'HASH' ) {
-			my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Time', 'TIME']);
-			my (@l) = ( $max, 7, 9 );
+			my (@s) = ( ['GroupBy', 'INTEGER'], ['Count', 'INTEGER'], ['Days', 'INTEGER'], ['Time', 'TIME']);
+			my (@l) = ( $max, 5, 4, 9 );
 			&BikeLog::Tables::print_header(\@s, \@l);
+                        $totals[2] = 0;
 			map {
 				$totals[1] += $time->{$_}->{'count'};
-				$totals[2] += $time->{$_}->{'sum'};
-				printf "%-*.*s\t%d\t%s\n", $max, $max, $_, $time->{$_}->{'count'}, &BikeLog::Tables::convert_seconds($time->{$_}->{'sum'});
+				$totals[3] += $time->{$_}->{'sum'};
+                                $totals[2] += scalar keys %{$time->{$_}->{'days'}};
+				printf "%-*.*s  %3d  %3d  %9.9s\n", $max, $max, $_, $time->{$_}->{'count'}, scalar keys %{$time->{$_}->{'days'}}, &BikeLog::Tables::convert_seconds($time->{$_}->{'sum'});
 			} sort keys %{$time};
 			&BikeLog::Tables::print_hr(\@s, \@l);
-			printf "%-*.*s\t%d\t%s\n", $max, $max, 'Totals', $totals[1], &BikeLog::Tables::convert_seconds($totals[2]);
+			printf "%-*.*s  %3d  %3d  %9.9s\n", $max, $max, 'Totals', $totals[1], $totals[2], &BikeLog::Tables::convert_seconds($totals[3]);
 		} else {
 			print &BikeLog::Tables::convert_seconds($time) . "\n";
 		}
